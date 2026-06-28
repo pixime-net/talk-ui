@@ -46,18 +46,37 @@ Copy `.env.example` to `.env.local` and adjust as needed.
 
 - **Framework:** React 19 + TypeScript (strict)
 - **Build:** Vite 8
+- **Chat SDK:** CopilotKit + AG-UI protocol (`@ag-ui/client`)
 - **Styling:** Tailwind CSS v4 (dark theme only)
 - **Routing:** TanStack Router
+- **Validation:** Zod (env + data boundaries)
 - **Testing:** Vitest + Testing Library
 - **Linting:** ESLint (flat config, strict) + Prettier
 - **CI:** GitHub Actions (build + lint + test)
+
+## Running with Backend
+
+The app connects to a `talk serve` backend via the AG-UI protocol.
+
+```bash
+# In the talk-backend workspace:
+cd talk && go run ./cmd/cli serve
+
+# Then in talk-ui:
+pnpm dev
+```
+
+The connection is configured via `VITE_AGENT_URL` (validated at startup with Zod).
 
 ## Project Structure
 
 ```
 src/
+├── config/
+│   ├── env.ts       # Zod-validated environment config
+│   └── agent.ts     # HttpAgent setup for CopilotKit
 ├── routes/          # TanStack Router file-based routes
-│   ├── __root.tsx   # Root layout
+│   ├── __root.tsx   # Root layout (CopilotKit provider)
 │   └── index.tsx    # Home route (/)
 ├── __tests__/       # Test files
 ├── App.tsx          # Main app component
