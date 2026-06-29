@@ -126,7 +126,10 @@ export function ChatView() {
 
   return (
     <main className="flex h-screen flex-col">
-      <div ref={containerRef} className="flex-1 overflow-y-auto p-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20 hover:[&::-webkit-scrollbar-thumb]:bg-white/30">
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-y-auto p-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20 hover:[&::-webkit-scrollbar-thumb]:bg-white/30"
+      >
         <div className="mx-auto flex max-w-2xl flex-col gap-3">
           {visibleMessages.map((msg) => (
             <MessageBubble key={msg.id} role={msg.role} content={msg.content} />
@@ -146,9 +149,7 @@ export function ChatView() {
           <div ref={bottomRef} />
         </div>
       </div>
-      <div className="p-4">
-        {chatBox}
-      </div>
+      <div className="p-4">{chatBox}</div>
     </main>
   );
 }
