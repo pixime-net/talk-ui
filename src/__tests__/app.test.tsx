@@ -13,6 +13,7 @@ vi.mock("@copilotkit/react-core/v2", () => ({
     copilotkit: {
       runAgent: vi.fn(),
       stopAgent: vi.fn(),
+      subscribe: vi.fn(() => ({ unsubscribe: vi.fn() })),
     },
   }),
 }));

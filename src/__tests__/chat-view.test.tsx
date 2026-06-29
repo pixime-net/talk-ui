@@ -15,6 +15,7 @@ const mockAgent = {
 const mockCopilotKit = {
   runAgent: vi.fn(),
   stopAgent: vi.fn(),
+  subscribe: vi.fn(() => ({ unsubscribe: vi.fn() })),
 };
 
 vi.mock("@copilotkit/react-core/v2", () => ({

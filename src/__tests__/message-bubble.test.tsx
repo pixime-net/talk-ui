@@ -1,5 +1,8 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("rehype-highlight", () => ({ default: () => () => {} }));
+
 import { MessageBubble } from "../components/MessageBubble";
 
 describe("MessageBubble", () => {
@@ -31,8 +34,22 @@ describe("MessageBubble", () => {
   });
 
   it("applies muted background for assistant messages", () => {
-    render(<MessageBubble role="assistant" content="test" />);
-    const bubble = screen.getByText("test").parentElement;
-    expect(bubble).toHaveClass("bg-white/5");
+    const { container } = render(
+      <MessageBubble role="assistant" content="test" />,
+    );
+    const bubble = container.querySelector(".bg-white\\/5");
+    expect(bubble).toBeInTheDocument();
+  });
+
+  it("renders assistant messages as markdown (bold renders <strong>)", () => {
+    const { container } = render(
+      <MessageBubble role="assistant" content="**bold text**" />,
+    );
+    expect(container.querySelector("strong")).toHaveTextContent("bold text");
+  });
+
+  it("renders user messages as plain text (markdown not interpreted)", () => {
+    render(<MessageBubble role="user" content="**not bold**" />);
+    expect(screen.getByText("**not bold**")).toBeInTheDocument();
   });
 });

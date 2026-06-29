@@ -1,3 +1,5 @@
+import { MarkdownContent } from "./MarkdownContent";
+
 interface MessageBubbleProps {
   role: "user" | "assistant";
   content: string;
@@ -13,7 +15,11 @@ export function MessageBubble({ role, content }: MessageBubbleProps) {
           isUser ? "bg-accent/20 text-foreground" : "bg-white/5 text-foreground"
         }`}
       >
-        <p className="whitespace-pre-wrap break-words">{content}</p>
+        {isUser ? (
+          <p className="whitespace-pre-wrap break-words">{content}</p>
+        ) : (
+          <MarkdownContent content={content} />
+        )}
       </div>
     </div>
   );
