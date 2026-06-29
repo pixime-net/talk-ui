@@ -164,7 +164,10 @@ describe("ChatView", () => {
       </ErrorProvider>,
     );
 
-    await user.selectOptions(screen.getByLabelText("Modèle"), "gpt-5.4");
+    // Open custom dropdown and select gpt-5.4
+    await user.click(screen.getByLabelText("Modèle"));
+    await user.click(screen.getByRole("option", { name: "gpt-5.4" }));
+
     await user.type(screen.getByLabelText("Message"), "Hello");
     await user.click(screen.getByLabelText("Envoyer"));
 
@@ -173,7 +176,7 @@ describe("ChatView", () => {
       forwardedProps: { model: "gpt-5.4" },
     });
 
-    expect(screen.getByLabelText("Modèle")).toHaveValue("gpt-5.4");
+    expect(screen.getByLabelText("Modèle")).toHaveTextContent("gpt-5.4");
     expect(DEFAULT_MODEL).toBe("sonnet-4.6");
   });
 

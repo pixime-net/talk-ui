@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAgent } from "@copilotkit/react-core/v2";
 import { useCopilotKit } from "@copilotkit/react-core/v2";
 import { ChatInput } from "./ChatInput";
+import { ModelSelector } from "./ModelSelector";
 import { MessageBubble } from "./MessageBubble";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { useAgentError } from "../config/error-context";
@@ -102,22 +103,30 @@ export function ChatView() {
     setSelectedModel(model);
   };
 
+  const chatBox = (
+    <div className="mx-auto w-full max-w-2xl rounded-xl border border-white/20 bg-white/5 px-4 pb-2 pt-3">
+      <ChatInput onSend={handleSend} disabled={agent.isRunning} />
+      <div className="flex justify-end pt-2.5">
+        <ModelSelector
+          value={selectedModel}
+          onChange={handleModelChange}
+          disabled={agent.isRunning}
+        />
+      </div>
+    </div>
+  );
+
   if (!hasMessages) {
     return (
       <main className="flex min-h-screen items-center justify-center p-4">
-        <ChatInput
-          onSend={handleSend}
-          selectedModel={selectedModel}
-          onModelChange={handleModelChange}
-          disabled={agent.isRunning}
-        />
+        {chatBox}
       </main>
     );
   }
 
   return (
     <main className="flex h-screen flex-col">
-      <div ref={containerRef} className="flex-1 overflow-y-auto p-4">
+      <div ref={containerRef} className="flex-1 overflow-y-auto p-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20 hover:[&::-webkit-scrollbar-thumb]:bg-white/30">
         <div className="mx-auto flex max-w-2xl flex-col gap-3">
           {visibleMessages.map((msg) => (
             <MessageBubble key={msg.id} role={msg.role} content={msg.content} />
@@ -137,15 +146,8 @@ export function ChatView() {
           <div ref={bottomRef} />
         </div>
       </div>
-      <div className="border-t border-white/10 p-4">
-        <div className="mx-auto flex max-w-2xl justify-center">
-          <ChatInput
-            onSend={handleSend}
-            selectedModel={selectedModel}
-            onModelChange={handleModelChange}
-            disabled={agent.isRunning}
-          />
-        </div>
+      <div className="p-4">
+        {chatBox}
       </div>
     </main>
   );
