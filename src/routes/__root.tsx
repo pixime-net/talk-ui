@@ -12,11 +12,13 @@ function RootLayout() {
       error?: { message?: string };
       context?: { request?: { url?: string } };
     }) => {
+      const errorMessage = event.error?.message?.trim();
       const message =
-        event.error?.message ??
-        (event.context?.request?.url
-          ? `Erreur de connexion à ${event.context.request.url}`
-          : "Une erreur inattendue est survenue");
+        errorMessage && errorMessage.length > 0
+          ? errorMessage
+          : event.context?.request?.url
+            ? `Erreur de connexion à ${event.context.request.url}`
+            : "Une erreur inattendue est survenue";
       setError(message);
     },
     [],

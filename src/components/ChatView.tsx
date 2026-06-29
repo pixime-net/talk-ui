@@ -7,6 +7,50 @@ import { ActivityIndicator } from "./ActivityIndicator";
 import { useAgentError } from "../config/error-context";
 import { useAutoScroll } from "../hooks/useAutoScroll";
 
+type ChatRole = "user" | "assistant";
+
+interface ChatMessageViewModel {
+  id: string;
+  role: ChatRole;
+  content: unknown;
+}
+
+function normalizeMessages(messages: unknown[]): ChatMessageViewModel[] {
+  return messages.flatMap((message, index) => {
+    if (!message || typeof message !== "object") return [];
+
+    const messageRecord = message as {
+      id?: unknown;
+      role?: unknown;
+      content?: unknown;
+    };
+
+    if (messageRecord.role !== "user" && messageRecord.role !== "assistant") {
+      return [];
+    }
+
+    if (
+      typeof messageRecord.content === "string" &&
+      messageRecord.content.trim() === ""
+    ) {
+      return [];
+    }
+
+    const id =
+      typeof messageRecord.id === "string" && messageRecord.id.trim() !== ""
+        ? messageRecord.id
+        : `msg-${index}`;
+
+    return [
+      {
+        id,
+        role: messageRecord.role,
+        content: messageRecord.content,
+      },
+    ];
+  });
+}
+
 export function ChatView() {
   const { agent } = useAgent();
   const { copilotkit } = useCopilotKit();
@@ -22,12 +66,7 @@ export function ChatView() {
     return () => unsubscribe();
   }, [copilotkit, setError]);
 
-  const visibleMessages = agent.messages.filter(
-    (msg) =>
-      (msg.role === "user" || msg.role === "assistant") &&
-      typeof msg.content === "string" &&
-      msg.content.trim() !== "",
-  );
+  const visibleMessages = normalizeMessages(agent.messages as unknown[]);
   const hasMessages = visibleMessages.length > 0 || error !== null;
 
   const { containerRef, bottomRef } = useAutoScroll([
@@ -37,13 +76,24 @@ export function ChatView() {
   ]);
 
   const handleSend = (content: string) => {
+    if (agent.isRunning) return;
+
     setError(null);
     agent.addMessage({
       id: crypto.randomUUID(),
       role: "user",
       content,
     });
-    void copilotkit.runAgent({ agent, forwardedProps: { model: "haiku-4.5" } });
+    void copilotkit
+      .runAgent({ agent, forwardedProps: { model: "haiku-4.5" } })
+      .catch((error: unknown) => {
+        const fallback = "An unexpected error occurred";
+        if (error instanceof Error && error.message.trim() !== "") {
+          setError(error.message);
+          return;
+        }
+        setError(fallback);
+      });
   };
 
   if (!hasMessages) {
@@ -61,14 +111,18 @@ export function ChatView() {
           {visibleMessages.map((msg) => (
             <MessageBubble
               key={msg.id}
-              role={msg.role as "user" | "assistant"}
-              content={msg.content as string}
+              role={msg.role}
+              content={msg.content}
             />
           ))}
           {agent.isRunning && <ActivityIndicator />}
           {error && (
             <div className="flex justify-start">
-              <div className="max-w-[75%] rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-red-400">
+              <div
+                role="alert"
+                aria-live="polite"
+                className="max-w-[75%] rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-red-400"
+              >
                 <p className="text-sm">{error}</p>
               </div>
             </div>

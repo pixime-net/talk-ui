@@ -52,4 +52,20 @@ describe("MessageBubble", () => {
     render(<MessageBubble role="user" content="**not bold**" />);
     expect(screen.getByText("**not bold**")).toBeInTheDocument();
   });
+
+  it("renders a placeholder for non-text assistant content", () => {
+    render(
+      <MessageBubble role="assistant" content={{ type: "audio" }} />,
+    );
+    expect(
+      screen.getByText("audio content is not displayed yet."),
+    ).toBeInTheDocument();
+  });
+
+  it("renders nothing for unsupported roles", () => {
+    const { container } = render(
+      <MessageBubble role="tool" content="tool output" />,
+    );
+    expect(container.firstChild).toBeNull();
+  });
 });

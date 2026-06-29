@@ -16,4 +16,14 @@ describe("agent config", () => {
     const { agents } = await import("../config/agent");
     expect(agents.default).toBeInstanceOf(HttpAgent);
   });
+
+  it("normalizes trailing slash in VITE_AGENT_URL", async () => {
+    vi.resetModules();
+    vi.stubEnv("VITE_AGENT_URL", "http://localhost:9999/");
+
+    const { agents } = await import("../config/agent");
+    const agent = agents.default as unknown as { url?: string };
+
+    expect(agent.url).toBe("http://localhost:9999/agent");
+  });
 });

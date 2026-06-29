@@ -1,8 +1,11 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { useState, type PropsWithChildren } from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { AgentErrorContext } from "../config/error-context";
 
 const mockAgent = {
-  messages: [] as { id: string; role: string; content: string }[],
+  messages: [] as { id: string; role: string; content: unknown }[],
   isRunning: false,
   addMessage: vi.fn(),
   agentId: "default",
@@ -25,10 +28,27 @@ vi.mock("@copilotkit/react-core/v2", () => ({
 
 import { ChatView } from "../components/ChatView";
 
+function ErrorProvider({ children }: PropsWithChildren) {
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <AgentErrorContext.Provider value={{ error, setError }}>
+      {children}
+    </AgentErrorContext.Provider>
+  );
+}
+
 describe("ChatView", () => {
   beforeEach(() => {
+    mockAgent.messages = [];
+    mockAgent.isRunning = false;
+    mockAgent.addMessage.mockClear();
+    mockCopilotKit.runAgent.mockReset();
+    mockCopilotKit.runAgent.mockResolvedValue(undefined);
+    mockCopilotKit.stopAgent.mockClear();
+    mockCopilotKit.subscribe.mockClear();
     Element.prototype.scrollIntoView = vi.fn();
   });
+
   it("renders empty state with centered input when no messages", () => {
     mockAgent.messages = [];
     const { container } = render(<ChatView />);
@@ -75,6 +95,17 @@ describe("ChatView", () => {
     expect(screen.queryByText("tool result")).not.toBeInTheDocument();
   });
 
+  it("renders placeholder for non-text assistant content", () => {
+    mockAgent.messages = [
+      { id: "1", role: "assistant", content: { type: "video" } },
+    ];
+
+    render(<ChatView />);
+    expect(
+      screen.getByText("video content is not displayed yet."),
+    ).toBeInTheDocument();
+  });
+
   it("transitions from empty state to messages state", () => {
     mockAgent.messages = [];
     const { container, rerender } = render(<ChatView />);
@@ -103,5 +134,23 @@ describe("ChatView", () => {
     expect(lastChild?.tagName).toBe("DIV");
     expect(lastChild?.children).toHaveLength(0);
     expect(lastChild?.textContent).toBe("");
+  });
+
+  it("shows an accessible error alert when runAgent rejects", async () => {
+    const user = userEvent.setup();
+    mockCopilotKit.runAgent.mockRejectedValueOnce(new Error("boom"));
+
+    render(
+      <ErrorProvider>
+        <ChatView />
+      </ErrorProvider>,
+    );
+
+    await user.type(screen.getByLabelText("Message"), "Hello");
+    await user.click(screen.getByLabelText("Envoyer"));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("boom");
+    expect(mockCopilotKit.runAgent).toHaveBeenCalledTimes(1);
   });
 });
