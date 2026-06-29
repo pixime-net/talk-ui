@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const mockAgent = {
   messages: [] as { id: string; role: string; content: string }[],
@@ -26,6 +26,9 @@ vi.mock("@copilotkit/react-core/v2", () => ({
 import { ChatView } from "../components/ChatView";
 
 describe("ChatView", () => {
+  beforeEach(() => {
+    Element.prototype.scrollIntoView = vi.fn();
+  });
   it("renders empty state with centered input when no messages", () => {
     mockAgent.messages = [];
     const { container } = render(<ChatView />);
@@ -82,5 +85,23 @@ describe("ChatView", () => {
     rerender(<ChatView />);
     main = container.querySelector("main");
     expect(main).toHaveClass("h-screen", "flex-col");
+  });
+
+  it("has a scroll container with overflow-y-auto", () => {
+    mockAgent.messages = [{ id: "1", role: "user", content: "Hello" }];
+    const { container } = render(<ChatView />);
+    const scrollContainer = container.querySelector(".overflow-y-auto");
+    expect(scrollContainer).toBeInTheDocument();
+  });
+
+  it("has a scroll sentinel at the bottom of the message list", () => {
+    mockAgent.messages = [{ id: "1", role: "user", content: "Hello" }];
+    const { container } = render(<ChatView />);
+    const messageArea = container.querySelector(".overflow-y-auto > div");
+    const lastChild = messageArea?.lastElementChild;
+    // The sentinel is an empty div at the end
+    expect(lastChild?.tagName).toBe("DIV");
+    expect(lastChild?.children).toHaveLength(0);
+    expect(lastChild?.textContent).toBe("");
   });
 });

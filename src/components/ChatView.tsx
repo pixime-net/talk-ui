@@ -5,6 +5,7 @@ import { ChatInput } from "./ChatInput";
 import { MessageBubble } from "./MessageBubble";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { useAgentError } from "../config/error-context";
+import { useAutoScroll } from "../hooks/useAutoScroll";
 
 export function ChatView() {
   const { agent } = useAgent();
@@ -26,6 +27,12 @@ export function ChatView() {
   );
   const hasMessages = visibleMessages.length > 0 || error !== null;
 
+  const { containerRef, bottomRef } = useAutoScroll([
+    visibleMessages.length,
+    visibleMessages.at(-1)?.content,
+    agent.isRunning,
+  ]);
+
   const handleSend = (content: string) => {
     setError(null);
     agent.addMessage({
@@ -46,7 +53,7 @@ export function ChatView() {
 
   return (
     <main className="flex h-screen flex-col">
-      <div className="flex-1 overflow-y-auto p-4">
+      <div ref={containerRef} className="flex-1 overflow-y-auto p-4">
         <div className="mx-auto flex max-w-2xl flex-col gap-3">
           {visibleMessages.map((msg) => (
             <MessageBubble
@@ -63,6 +70,7 @@ export function ChatView() {
               </div>
             </div>
           )}
+          <div ref={bottomRef} />
         </div>
       </div>
       <div className="border-t border-white/10 p-4">
