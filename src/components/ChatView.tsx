@@ -23,7 +23,10 @@ export function ChatView() {
   }, [copilotkit, setError]);
 
   const visibleMessages = agent.messages.filter(
-    (msg) => msg.role === "user" || msg.role === "assistant",
+    (msg) =>
+      (msg.role === "user" || msg.role === "assistant") &&
+      typeof msg.content === "string" &&
+      msg.content.trim() !== "",
   );
   const hasMessages = visibleMessages.length > 0 || error !== null;
 
@@ -59,7 +62,7 @@ export function ChatView() {
             <MessageBubble
               key={msg.id}
               role={msg.role as "user" | "assistant"}
-              content={typeof msg.content === "string" ? msg.content : ""}
+              content={msg.content as string}
             />
           ))}
           {agent.isRunning && <ActivityIndicator />}
