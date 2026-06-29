@@ -3,11 +3,18 @@ import { useAgent } from "@copilotkit/react-core/v2";
 import { useCopilotKit } from "@copilotkit/react-core/v2";
 import { ChatInput } from "./ChatInput";
 import { ModelSelector } from "./ModelSelector";
+import { ThinkingEffortSelector } from "./ThinkingEffortSelector";
 import { MessageBubble } from "./MessageBubble";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { useAgentError } from "../config/error-context";
 import { useAutoScroll } from "../hooks/useAutoScroll";
-import { DEFAULT_MODEL, type ModelAlias } from "../config/models";
+import {
+  DEFAULT_MODEL,
+  DEFAULT_THINKING_EFFORT,
+  supportsThinking,
+  type ModelAlias,
+  type ThinkingEffort,
+} from "../config/models";
 
 type ChatRole = "user" | "assistant";
 
@@ -58,6 +65,9 @@ export function ChatView() {
   const { copilotkit } = useCopilotKit();
   const { error, setError } = useAgentError();
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
+  const [thinkingEffort, setThinkingEffort] = useState<ThinkingEffort>(
+    DEFAULT_THINKING_EFFORT,
+  );
 
   // Subscribe to CopilotKit core errors (HTTP failures, network errors, etc.)
   useEffect(() => {
@@ -87,8 +97,12 @@ export function ChatView() {
       role: "user",
       content,
     });
+    const forwardedProps: Record<string, string> = { model: selectedModel };
+    if (thinkingEffort !== "off" && supportsThinking(selectedModel)) {
+      forwardedProps.thinkingEffort = thinkingEffort;
+    }
     void copilotkit
-      .runAgent({ agent, forwardedProps: { model: selectedModel } })
+      .runAgent({ agent, forwardedProps })
       .catch((error: unknown) => {
         const fallback = "An unexpected error occurred";
         if (error instanceof Error && error.message.trim() !== "") {
@@ -101,17 +115,27 @@ export function ChatView() {
 
   const handleModelChange = (model: ModelAlias) => {
     setSelectedModel(model);
+    if (!supportsThinking(model)) {
+      setThinkingEffort(DEFAULT_THINKING_EFFORT);
+    }
   };
 
   const chatBox = (
     <div className="mx-auto w-full max-w-2xl rounded-xl border border-white/20 bg-white/5 px-4 pb-2 pt-3">
       <ChatInput onSend={handleSend} disabled={agent.isRunning} />
-      <div className="flex justify-end pt-2.5">
+      <div className="flex justify-end gap-2 pt-2.5">
         <ModelSelector
           value={selectedModel}
           onChange={handleModelChange}
           disabled={agent.isRunning}
         />
+        {supportsThinking(selectedModel) && (
+          <ThinkingEffortSelector
+            value={thinkingEffort}
+            onChange={setThinkingEffort}
+            disabled={agent.isRunning}
+          />
+        )}
       </div>
     </div>
   );

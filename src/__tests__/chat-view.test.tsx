@@ -206,4 +206,124 @@ describe("ChatView", () => {
       forwardedProps: { model: "sonnet-4.6" },
     });
   });
+
+  describe("thinking effort selector", () => {
+    it("shows thinking selector when model supports thinking", () => {
+      render(<ChatView />);
+      // Default model is sonnet-4.6 which supports thinking
+      expect(screen.getByLabelText("Effort de réflexion")).toBeInTheDocument();
+    });
+
+    it("hides thinking selector when model does not support thinking", async () => {
+      const user = userEvent.setup();
+      render(<ChatView />);
+
+      // Switch to gpt-5.4 which does not support thinking
+      await user.click(screen.getByLabelText("Modèle"));
+      await user.click(screen.getByRole("option", { name: "gpt-5.4" }));
+
+      expect(
+        screen.queryByLabelText("Effort de réflexion"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("forwards thinkingEffort in forwardedProps when effort is not off", async () => {
+      const user = userEvent.setup();
+      render(
+        <ErrorProvider>
+          <ChatView />
+        </ErrorProvider>,
+      );
+
+      // Select high thinking effort
+      await user.click(screen.getByLabelText("Effort de réflexion"));
+      await user.click(screen.getByRole("option", { name: "high" }));
+
+      await user.type(screen.getByLabelText("Message"), "Hello");
+      await user.click(screen.getByLabelText("Envoyer"));
+
+      expect(mockCopilotKit.runAgent).toHaveBeenCalledWith({
+        agent: mockAgent,
+        forwardedProps: { model: "sonnet-4.6", thinkingEffort: "high" },
+      });
+    });
+
+    it("omits thinkingEffort when effort is off", async () => {
+      const user = userEvent.setup();
+      render(
+        <ErrorProvider>
+          <ChatView />
+        </ErrorProvider>,
+      );
+
+      // Default is "off" — just send a message
+      await user.type(screen.getByLabelText("Message"), "Hello");
+      await user.click(screen.getByLabelText("Envoyer"));
+
+      expect(mockCopilotKit.runAgent).toHaveBeenCalledWith({
+        agent: mockAgent,
+        forwardedProps: { model: "sonnet-4.6" },
+      });
+    });
+
+    it("omits thinkingEffort when model does not support thinking", async () => {
+      const user = userEvent.setup();
+      render(
+        <ErrorProvider>
+          <ChatView />
+        </ErrorProvider>,
+      );
+
+      // Select thinking effort first, then switch to non-thinking model
+      await user.click(screen.getByLabelText("Effort de réflexion"));
+      await user.click(screen.getByRole("option", { name: "high" }));
+
+      // Switch to gpt-5.4 (non-thinking) — should reset effort
+      await user.click(screen.getByLabelText("Modèle"));
+      await user.click(screen.getByRole("option", { name: "gpt-5.4" }));
+
+      await user.type(screen.getByLabelText("Message"), "Hello");
+      await user.click(screen.getByLabelText("Envoyer"));
+
+      expect(mockCopilotKit.runAgent).toHaveBeenCalledWith({
+        agent: mockAgent,
+        forwardedProps: { model: "gpt-5.4" },
+      });
+    });
+
+    it("resets thinking effort to off when switching to non-thinking model", async () => {
+      const user = userEvent.setup();
+      render(<ChatView />);
+
+      // Select high effort
+      await user.click(screen.getByLabelText("Effort de réflexion"));
+      await user.click(screen.getByRole("option", { name: "high" }));
+
+      // Switch to non-thinking model
+      await user.click(screen.getByLabelText("Modèle"));
+      await user.click(screen.getByRole("option", { name: "gpt-5.4" }));
+
+      // Selector should disappear
+      expect(
+        screen.queryByLabelText("Effort de réflexion"),
+      ).not.toBeInTheDocument();
+
+      // Switch back to thinking model
+      await user.click(screen.getByLabelText("Modèle"));
+      await user.click(screen.getByRole("option", { name: "sonnet-4.6" }));
+
+      // Selector reappears with default "off"
+      expect(screen.getByLabelText("Effort de réflexion")).toHaveTextContent(
+        "off",
+      );
+    });
+
+    it("disables thinking selector when agent is running", () => {
+      mockAgent.messages = [{ id: "1", role: "user", content: "Hello" }];
+      mockAgent.isRunning = true;
+      render(<ChatView />);
+
+      expect(screen.getByLabelText("Effort de réflexion")).toBeDisabled();
+    });
+  });
 });
