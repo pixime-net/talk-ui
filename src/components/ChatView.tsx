@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAgent } from "@copilotkit/react-core/v2";
 import { useCopilotKit } from "@copilotkit/react-core/v2";
 import { ChatInput } from "./ChatInput";
@@ -6,6 +6,7 @@ import { MessageBubble } from "./MessageBubble";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { useAgentError } from "../config/error-context";
 import { useAutoScroll } from "../hooks/useAutoScroll";
+import { DEFAULT_MODEL, type ModelAlias } from "../config/models";
 
 type ChatRole = "user" | "assistant";
 
@@ -55,6 +56,7 @@ export function ChatView() {
   const { agent } = useAgent();
   const { copilotkit } = useCopilotKit();
   const { error, setError } = useAgentError();
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
 
   // Subscribe to CopilotKit core errors (HTTP failures, network errors, etc.)
   useEffect(() => {
@@ -85,7 +87,7 @@ export function ChatView() {
       content,
     });
     void copilotkit
-      .runAgent({ agent, forwardedProps: { model: "haiku-4.5" } })
+      .runAgent({ agent, forwardedProps: { model: selectedModel } })
       .catch((error: unknown) => {
         const fallback = "An unexpected error occurred";
         if (error instanceof Error && error.message.trim() !== "") {
@@ -96,10 +98,19 @@ export function ChatView() {
       });
   };
 
+  const handleModelChange = (model: ModelAlias) => {
+    setSelectedModel(model);
+  };
+
   if (!hasMessages) {
     return (
       <main className="flex min-h-screen items-center justify-center p-4">
-        <ChatInput onSend={handleSend} disabled={agent.isRunning} />
+        <ChatInput
+          onSend={handleSend}
+          selectedModel={selectedModel}
+          onModelChange={handleModelChange}
+          disabled={agent.isRunning}
+        />
       </main>
     );
   }
@@ -109,11 +120,7 @@ export function ChatView() {
       <div ref={containerRef} className="flex-1 overflow-y-auto p-4">
         <div className="mx-auto flex max-w-2xl flex-col gap-3">
           {visibleMessages.map((msg) => (
-            <MessageBubble
-              key={msg.id}
-              role={msg.role}
-              content={msg.content}
-            />
+            <MessageBubble key={msg.id} role={msg.role} content={msg.content} />
           ))}
           {agent.isRunning && <ActivityIndicator />}
           {error && (
@@ -132,7 +139,12 @@ export function ChatView() {
       </div>
       <div className="border-t border-white/10 p-4">
         <div className="mx-auto flex max-w-2xl justify-center">
-          <ChatInput onSend={handleSend} disabled={agent.isRunning} />
+          <ChatInput
+            onSend={handleSend}
+            selectedModel={selectedModel}
+            onModelChange={handleModelChange}
+            disabled={agent.isRunning}
+          />
         </div>
       </div>
     </main>

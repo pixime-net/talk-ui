@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { useState, type PropsWithChildren } from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { AgentErrorContext } from "../config/error-context";
+import { DEFAULT_MODEL } from "../config/models";
 
 const mockAgent = {
   messages: [] as { id: string; role: string; content: unknown }[],
@@ -152,5 +153,54 @@ describe("ChatView", () => {
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("boom");
     expect(mockCopilotKit.runAgent).toHaveBeenCalledTimes(1);
+  });
+
+  it("forwards the selected model when sending a message", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ErrorProvider>
+        <ChatView />
+      </ErrorProvider>,
+    );
+
+    await user.selectOptions(screen.getByLabelText("Modèle"), "gpt-5.4");
+    await user.type(screen.getByLabelText("Message"), "Hello");
+    await user.click(screen.getByLabelText("Envoyer"));
+
+    expect(mockCopilotKit.runAgent).toHaveBeenCalledWith({
+      agent: mockAgent,
+      forwardedProps: { model: "gpt-5.4" },
+    });
+
+    expect(screen.getByLabelText("Modèle")).toHaveValue("gpt-5.4");
+    expect(DEFAULT_MODEL).toBe("sonnet-4.6");
+  });
+
+  it("disables model selector when agent is running", () => {
+    mockAgent.messages = [{ id: "1", role: "user", content: "Hello" }];
+    mockAgent.isRunning = true;
+
+    render(<ChatView />);
+
+    expect(screen.getByLabelText("Modèle")).toBeDisabled();
+  });
+
+  it("forwards default model without user interaction", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ErrorProvider>
+        <ChatView />
+      </ErrorProvider>,
+    );
+
+    await user.type(screen.getByLabelText("Message"), "Hello");
+    await user.click(screen.getByLabelText("Envoyer"));
+
+    expect(mockCopilotKit.runAgent).toHaveBeenCalledWith({
+      agent: mockAgent,
+      forwardedProps: { model: "sonnet-4.6" },
+    });
   });
 });

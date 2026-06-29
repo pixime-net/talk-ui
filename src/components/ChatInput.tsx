@@ -1,11 +1,19 @@
 import { type FormEvent, useState } from "react";
+import { MODEL_ALIASES, type ModelAlias } from "../config/models";
 
 interface ChatInputProps {
   onSend: (content: string) => void;
+  selectedModel: ModelAlias;
+  onModelChange: (model: ModelAlias) => void;
   disabled?: boolean;
 }
 
-export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
+export function ChatInput({
+  onSend,
+  selectedModel,
+  onModelChange,
+  disabled = false,
+}: ChatInputProps) {
   const [input, setInput] = useState("");
 
   const handleSubmit = (e: FormEvent) => {
@@ -18,6 +26,19 @@ export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
 
   return (
     <form onSubmit={handleSubmit} className="flex w-full max-w-2xl gap-2">
+      <select
+        value={selectedModel}
+        onChange={(e) => onModelChange(e.target.value as ModelAlias)}
+        disabled={disabled}
+        aria-label="Modèle"
+        className="rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-foreground focus:border-accent focus:outline-none disabled:opacity-50"
+      >
+        {MODEL_ALIASES.map((alias) => (
+          <option key={alias} value={alias}>
+            {alias}
+          </option>
+        ))}
+      </select>
       <input
         type="text"
         value={input}

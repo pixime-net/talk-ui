@@ -23,7 +23,7 @@ describe("MarkdownContent", () => {
 
   it("renders a fenced code block", () => {
     const { container } = render(
-      <MarkdownContent content={'```js\nconsole.log(1)\n```'} />,
+      <MarkdownContent content={"```js\nconsole.log(1)\n```"} />,
     );
     const pre = container.querySelector("pre");
     expect(pre).toBeInTheDocument();
@@ -76,9 +76,7 @@ describe("MarkdownContent", () => {
   });
 
   it("renders strikethrough (GFM)", () => {
-    const { container } = render(
-      <MarkdownContent content="~~deleted~~" />,
-    );
+    const { container } = render(<MarkdownContent content="~~deleted~~" />);
     expect(container.querySelector("del")).toHaveTextContent("deleted");
   });
 });

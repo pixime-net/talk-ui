@@ -54,9 +54,7 @@ describe("MessageBubble", () => {
   });
 
   it("renders a placeholder for non-text assistant content", () => {
-    render(
-      <MessageBubble role="assistant" content={{ type: "audio" }} />,
-    );
+    render(<MessageBubble role="assistant" content={{ type: "audio" }} />);
     expect(
       screen.getByText("audio content is not displayed yet."),
     ).toBeInTheDocument();
