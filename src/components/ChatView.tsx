@@ -1,6 +1,3 @@
-import { useEffect, useState } from "react";
-import { useAgent } from "@copilotkit/react-core/v2";
-import { useCopilotKit } from "@copilotkit/react-core/v2";
 import { ChatInput } from "./ChatInput";
 import { ModelSelector } from "./ModelSelector";
 import { ThinkingEffortSelector } from "./ThinkingEffortSelector";
@@ -9,98 +6,66 @@ import { ReasoningBlock } from "./ReasoningBlock";
 import { ToolCallItem } from "./ToolCallItem";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { ErrorBlock } from "./ErrorBlock";
-import { useAgentError } from "../config/error-context";
-import { useAutoScroll } from "../hooks/useAutoScroll";
-import { normalizeMessages } from "../config/normalize-messages";
-import {
-  DEFAULT_MODEL,
-  DEFAULT_THINKING_EFFORT,
-  supportsThinking,
-  type ModelAlias,
-  type ThinkingEffort,
-} from "../config/models";
+import { useAutoScroll } from "../hooks/use-auto-scrolll";
+import { useChatUIContext } from "../context/use-chat-ui-context";
 
 export function ChatView() {
-  const { agent } = useAgent();
-  const { copilotkit } = useCopilotKit();
-  const { error, setError } = useAgentError();
-  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
-  const [thinkingEffort, setThinkingEffort] = useState<ThinkingEffort>(
-    DEFAULT_THINKING_EFFORT,
-  );
+  const {
+    visibleMessages,
+    isRunning,
+    error,
+    showTools,
+    selectedModel,
+    thinkingEffort,
+    supportsThinkingForSelectedModel,
+    sendMessage,
+    setShowTools,
+    setSelectedModel,
+    setThinkingEffort,
+  } = useChatUIContext();
 
-  // Subscribe to CopilotKit core errors (HTTP failures, network errors, etc.)
-  useEffect(() => {
-    const { unsubscribe } = copilotkit.subscribe({
-      onError: (event: { error: Error }) => {
-        setError(event.error.message || "An unexpected error occurred");
-      },
-    });
-    return () => unsubscribe();
-  }, [copilotkit, setError]);
-
-  const visibleMessages = normalizeMessages(agent.messages);
   const hasMessages = visibleMessages.length > 0 || error !== null;
+  const showConversationLayout = hasMessages || isRunning;
 
   const { containerRef, bottomRef } = useAutoScroll([
     visibleMessages.length,
     visibleMessages.at(-1)?.content,
-    agent.isRunning,
+    isRunning,
   ]);
-
-  const handleSend = (content: string) => {
-    if (agent.isRunning) return;
-
-    setError(null);
-    agent.addMessage({
-      id: crypto.randomUUID(),
-      role: "user",
-      content,
-    });
-    const forwardedProps: Record<string, string> = { model: selectedModel };
-    if (thinkingEffort !== "off" && supportsThinking(selectedModel)) {
-      forwardedProps.thinkingEffort = thinkingEffort;
-    }
-    void copilotkit
-      .runAgent({ agent, forwardedProps })
-      .catch((error: unknown) => {
-        const fallback = "An unexpected error occurred";
-        if (error instanceof Error && error.message.trim() !== "") {
-          setError(error.message);
-          return;
-        }
-        setError(fallback);
-      });
-  };
-
-  const handleModelChange = (model: ModelAlias) => {
-    setSelectedModel(model);
-    if (!supportsThinking(model)) {
-      setThinkingEffort(DEFAULT_THINKING_EFFORT);
-    }
-  };
 
   const chatBox = (
     <div className="mx-auto w-full max-w-2xl rounded-xl border border-white/20 bg-white/5 px-4 pb-2 pt-3">
-      <ChatInput onSend={handleSend} disabled={agent.isRunning} />
+      <ChatInput onSend={sendMessage} disabled={isRunning} />
       <div className="flex justify-end gap-2 pt-2.5">
         <ModelSelector
           value={selectedModel}
-          onChange={handleModelChange}
-          disabled={agent.isRunning}
+          onChange={setSelectedModel}
+          disabled={isRunning}
         />
-        {supportsThinking(selectedModel) && (
+        {supportsThinkingForSelectedModel && (
           <ThinkingEffortSelector
             value={thinkingEffort}
             onChange={setThinkingEffort}
-            disabled={agent.isRunning}
+            disabled={isRunning}
           />
         )}
+        <button
+          type="button"
+          aria-label="Tools"
+          onClick={() => setShowTools(!showTools)}
+          disabled={isRunning}
+          className="flex min-w-[62px] items-center justify-center gap-1 rounded-md border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] text-muted transition-colors hover:border-white/30 hover:text-foreground disabled:opacity-50"
+        >
+          <span className="text-xs" aria-hidden="true">
+            🔧
+          </span>
+          <span>{showTools ? "Hide" : "Show"}</span>
+        </button>
       </div>
     </div>
   );
 
-  if (!hasMessages) {
+  if (!showConversationLayout) {
     return (
       <main className="flex min-h-screen items-center justify-center p-4">
         {chatBox}
@@ -119,12 +84,21 @@ export function ChatView() {
             msg.role === "reasoning" ? (
               <ReasoningBlock key={msg.id} content={msg.content as string} />
             ) : msg.role === "tool-call" ? (
-              <ToolCallItem
+              <div
                 key={msg.id}
-                toolName={msg.toolName ?? "unknown"}
-                toolArgs={msg.toolArgs}
-                toolResult={msg.toolResult}
-              />
+                className={`overflow-hidden transition-all duration-200 ease-out ${
+                  showTools
+                    ? "max-h-[360px] translate-y-0 opacity-100"
+                    : "pointer-events-none max-h-0 -translate-y-1 opacity-0"
+                }`}
+                aria-hidden={!showTools}
+              >
+                <ToolCallItem
+                  toolName={msg.toolName ?? "unknown"}
+                  toolArgs={msg.toolArgs}
+                  toolResult={msg.toolResult}
+                />
+              </div>
             ) : (
               <MessageBubble
                 key={msg.id}
@@ -133,7 +107,7 @@ export function ChatView() {
               />
             ),
           )}
-          {agent.isRunning && <ActivityIndicator />}
+          {isRunning && <ActivityIndicator />}
           {error && <ErrorBlock message={error} />}
           <div ref={bottomRef} />
         </div>

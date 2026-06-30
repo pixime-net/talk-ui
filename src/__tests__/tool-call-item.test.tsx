@@ -64,15 +64,17 @@ describe("ToolCallItem", () => {
   it("shows in-progress indicator when no result", () => {
     render(<ToolCallItem toolName="get_weather" toolArgs='{"city":"Paris"}' />);
     expect(screen.getByTestId("tool-call-in-progress")).toBeInTheDocument();
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.getByRole("button")).toBeInTheDocument();
   });
 
-  it("is not expandable when in-progress", async () => {
+  it("is expandable when in-progress", async () => {
     const user = userEvent.setup();
     render(<ToolCallItem toolName="get_weather" toolArgs='{"city":"Paris"}' />);
-    const header = screen.getByTestId("tool-call-header");
-    await user.click(header);
-    expect(screen.queryByText(/Arguments/i)).not.toBeInTheDocument();
+    const button = screen.getByRole("button");
+    await user.click(button);
+    expect(button).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText(/Arguments/i)).toBeInTheDocument();
+    expect(screen.getByText(/Running.../i)).toBeInTheDocument();
   });
 
   it("pretty-prints valid JSON in args", async () => {

@@ -84,6 +84,15 @@ export function ThinkingEffortSelector({
         aria-expanded={open}
         className="flex items-center gap-1 rounded-md border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] text-muted transition-colors hover:border-white/30 hover:text-foreground disabled:opacity-50"
       >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          className="h-3 w-3 text-white/70"
+          aria-hidden="true"
+        >
+          <path d="M8.38 2.4a.75.75 0 0 1 1.24 0l1.08 1.61c.2.31.49.55.84.71l1.8.8a.75.75 0 0 1 0 1.36l-1.8.8a2.23 2.23 0 0 0-.84.71L9.62 10a.75.75 0 0 1-1.24 0L7.3 8.39a2.23 2.23 0 0 0-.84-.71l-1.8-.8a.75.75 0 0 1 0-1.36l1.8-.8c.35-.16.64-.4.84-.71L8.38 2.4Zm5.58 7.1a.75.75 0 0 1 1.08 0l.48.48c.13.13.28.24.45.31l.62.28a.75.75 0 0 1 0 1.36l-.62.28c-.17.07-.32.18-.45.31l-.48.48a.75.75 0 0 1-1.08 0l-.48-.48a1.37 1.37 0 0 0-.45-.31l-.62-.28a.75.75 0 0 1 0-1.36l.62-.28c.17-.07.32-.18.45-.31l.48-.48Zm-7.5 3a.75.75 0 0 1 1.08 0l.69.69c.08.08.17.14.27.18l.9.4a.75.75 0 0 1 0 1.36l-.9.4a.87.87 0 0 0-.27.18l-.69.69a.75.75 0 0 1-1.08 0l-.69-.69a.87.87 0 0 0-.27-.18l-.9-.4a.75.75 0 0 1 0-1.36l.9-.4c.1-.04.2-.1.27-.18l.69-.69Z" />
+        </svg>
         {value}
         <svg
           xmlns="http://www.w3.org/2000/svg"

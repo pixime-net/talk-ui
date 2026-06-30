@@ -103,7 +103,7 @@ export function normalizeMessages(
             ? `tool-${toolCallId}`
             : `tool-msg-${index}-${toolIndex}`;
 
-        result.push({
+        const vm: ChatMessageViewModel = {
           id: vmId,
           role: "tool-call",
           content: null,
@@ -111,9 +111,10 @@ export function normalizeMessages(
           toolArgs: typeof fn.arguments === "string" ? fn.arguments : undefined,
           toolCallId,
           toolResult: pendingToolResult,
-        });
+        };
 
-        const vm = result[result.length - 1];
+        result.push(vm);
+
         if (vm.toolResult === undefined) {
           unresolvedToolCalls.push(vm);
         }

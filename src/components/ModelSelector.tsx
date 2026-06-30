@@ -84,6 +84,15 @@ export function ModelSelector({
         aria-expanded={open}
         className="flex items-center gap-1 rounded-md border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] text-muted transition-colors hover:border-white/30 hover:text-foreground disabled:opacity-50"
       >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          className="h-3 w-3 text-white/70"
+          aria-hidden="true"
+        >
+          <path d="M6.5 2.75A1.75 1.75 0 0 0 4.75 4.5v.25h-.25A1.75 1.75 0 0 0 2.75 6.5v7A1.75 1.75 0 0 0 4.5 15.25h.25v.25A1.75 1.75 0 0 0 6.5 17.25h7a1.75 1.75 0 0 0 1.75-1.75v-.25h.25a1.75 1.75 0 0 0 1.75-1.75v-7a1.75 1.75 0 0 0-1.75-1.75h-.25V4.5A1.75 1.75 0 0 0 13.5 2.75h-7ZM6.25 4.5a.25.25 0 0 1 .25-.25h7a.25.25 0 0 1 .25.25v11a.25.25 0 0 1-.25.25h-7a.25.25 0 0 1-.25-.25v-11ZM4.5 6.25h.25v7.5H4.5a.25.25 0 0 1-.25-.25v-7a.25.25 0 0 1 .25-.25Zm11 0h.25a.25.25 0 0 1 .25.25v7a.25.25 0 0 1-.25.25h-.25v-7.5Z" />
+        </svg>
         {value}
         <svg
           xmlns="http://www.w3.org/2000/svg"

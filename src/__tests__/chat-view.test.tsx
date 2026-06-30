@@ -4,6 +4,7 @@ import { useState, type PropsWithChildren } from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { AgentErrorContext } from "../config/error-context";
 import { DEFAULT_MODEL } from "../config/models";
+import { ChatUIProvider } from "../context/ChatUIContext";
 
 const mockAgent = {
   messages: [] as { id: string; role: string; content: unknown }[],
@@ -38,6 +39,14 @@ function ErrorProvider({ children }: PropsWithChildren) {
   );
 }
 
+function Providers({ children }: PropsWithChildren) {
+  return (
+    <ErrorProvider>
+      <ChatUIProvider>{children}</ChatUIProvider>
+    </ErrorProvider>
+  );
+}
+
 describe("ChatView", () => {
   beforeEach(() => {
     mockAgent.messages = [];
@@ -52,7 +61,11 @@ describe("ChatView", () => {
 
   it("renders empty state with centered input when no messages", () => {
     mockAgent.messages = [];
-    const { container } = render(<ChatView />);
+    const { container } = render(
+      <Providers>
+        <ChatView />
+      </Providers>,
+    );
     const main = container.querySelector("main");
     expect(main).toHaveClass("items-center", "justify-center");
     expect(screen.getByLabelText("Message")).toBeInTheDocument();
@@ -63,7 +76,11 @@ describe("ChatView", () => {
       { id: "1", role: "user", content: "Hello" },
       { id: "2", role: "assistant", content: "Hi there" },
     ];
-    render(<ChatView />);
+    render(
+      <Providers>
+        <ChatView />
+      </Providers>,
+    );
     expect(screen.getByText("Hello")).toBeInTheDocument();
     expect(screen.getByText("Hi there")).toBeInTheDocument();
   });
@@ -71,14 +88,38 @@ describe("ChatView", () => {
   it("shows activity indicator when agent is running", () => {
     mockAgent.messages = [{ id: "1", role: "user", content: "Hello" }];
     mockAgent.isRunning = true;
-    render(<ChatView />);
+    render(
+      <Providers>
+        <ChatView />
+      </Providers>,
+    );
     expect(screen.getByLabelText("L'assistant réfléchit")).toBeInTheDocument();
+  });
+
+  it("shows activity indicator in empty state during first response", () => {
+    mockAgent.messages = [];
+    mockAgent.isRunning = true;
+    const { container } = render(
+      <Providers>
+        <ChatView />
+      </Providers>,
+    );
+
+    expect(screen.getByLabelText("L'assistant réfléchit")).toBeInTheDocument();
+    expect(screen.getByLabelText("Message")).toBeInTheDocument();
+
+    const main = container.querySelector("main");
+    expect(main).toHaveClass("h-screen", "flex-col");
   });
 
   it("hides activity indicator when agent is not running", () => {
     mockAgent.messages = [{ id: "1", role: "user", content: "Hello" }];
     mockAgent.isRunning = false;
-    render(<ChatView />);
+    render(
+      <Providers>
+        <ChatView />
+      </Providers>,
+    );
     expect(
       screen.queryByLabelText("L'assistant réfléchit"),
     ).not.toBeInTheDocument();
@@ -90,7 +131,11 @@ describe("ChatView", () => {
       { id: "2", role: "tool", content: "tool result" },
       { id: "3", role: "assistant", content: "Reply" },
     ];
-    render(<ChatView />);
+    render(
+      <Providers>
+        <ChatView />
+      </Providers>,
+    );
     expect(screen.getByText("Hello")).toBeInTheDocument();
     expect(screen.getByText("Reply")).toBeInTheDocument();
     expect(screen.queryByText("tool result")).not.toBeInTheDocument();
@@ -102,7 +147,11 @@ describe("ChatView", () => {
       { id: "2", role: "assistant", content: { type: "video" } },
     ];
 
-    const { container } = render(<ChatView />);
+    const { container } = render(
+      <Providers>
+        <ChatView />
+      </Providers>,
+    );
     expect(
       screen.getByText("video content is not displayed yet."),
     ).toBeInTheDocument();
@@ -111,26 +160,42 @@ describe("ChatView", () => {
 
   it("transitions from empty state to messages state", () => {
     mockAgent.messages = [];
-    const { container, rerender } = render(<ChatView />);
+    const { container, rerender } = render(
+      <Providers>
+        <ChatView />
+      </Providers>,
+    );
     let main = container.querySelector("main");
     expect(main).toHaveClass("items-center");
 
     mockAgent.messages = [{ id: "1", role: "user", content: "Hello" }];
-    rerender(<ChatView />);
+    rerender(
+      <Providers>
+        <ChatView />
+      </Providers>,
+    );
     main = container.querySelector("main");
     expect(main).toHaveClass("h-screen", "flex-col");
   });
 
   it("has a scroll container with overflow-y-auto", () => {
     mockAgent.messages = [{ id: "1", role: "user", content: "Hello" }];
-    const { container } = render(<ChatView />);
+    const { container } = render(
+      <Providers>
+        <ChatView />
+      </Providers>,
+    );
     const scrollContainer = container.querySelector(".overflow-y-auto");
     expect(scrollContainer).toBeInTheDocument();
   });
 
   it("has a scroll sentinel at the bottom of the message list", () => {
     mockAgent.messages = [{ id: "1", role: "user", content: "Hello" }];
-    const { container } = render(<ChatView />);
+    const { container } = render(
+      <Providers>
+        <ChatView />
+      </Providers>,
+    );
     const messageArea = container.querySelector(".overflow-y-auto > div");
     const lastChild = messageArea?.lastElementChild;
     // The sentinel is an empty div at the end
@@ -144,9 +209,9 @@ describe("ChatView", () => {
     mockCopilotKit.runAgent.mockRejectedValueOnce(new Error("boom"));
 
     render(
-      <ErrorProvider>
+      <Providers>
         <ChatView />
-      </ErrorProvider>,
+      </Providers>,
     );
 
     await user.type(screen.getByLabelText("Message"), "Hello");
@@ -161,9 +226,9 @@ describe("ChatView", () => {
     const user = userEvent.setup();
 
     render(
-      <ErrorProvider>
+      <Providers>
         <ChatView />
-      </ErrorProvider>,
+      </Providers>,
     );
 
     // Open custom dropdown and select gpt-5.4
@@ -186,7 +251,11 @@ describe("ChatView", () => {
     mockAgent.messages = [{ id: "1", role: "user", content: "Hello" }];
     mockAgent.isRunning = true;
 
-    render(<ChatView />);
+    render(
+      <Providers>
+        <ChatView />
+      </Providers>,
+    );
 
     expect(screen.getByLabelText("Modèle")).toBeDisabled();
   });
@@ -195,9 +264,9 @@ describe("ChatView", () => {
     const user = userEvent.setup();
 
     render(
-      <ErrorProvider>
+      <Providers>
         <ChatView />
-      </ErrorProvider>,
+      </Providers>,
     );
 
     await user.type(screen.getByLabelText("Message"), "Hello");
@@ -211,14 +280,22 @@ describe("ChatView", () => {
 
   describe("thinking effort selector", () => {
     it("shows thinking selector when model supports thinking", () => {
-      render(<ChatView />);
+      render(
+        <Providers>
+          <ChatView />
+        </Providers>,
+      );
       // Default model is sonnet-4.6 which supports thinking
       expect(screen.getByLabelText("Effort de réflexion")).toBeInTheDocument();
     });
 
     it("hides thinking selector when model does not support thinking", async () => {
       const user = userEvent.setup();
-      render(<ChatView />);
+      render(
+        <Providers>
+          <ChatView />
+        </Providers>,
+      );
 
       // Switch to gpt-5.4 which does not support thinking
       await user.click(screen.getByLabelText("Modèle"));
@@ -232,9 +309,9 @@ describe("ChatView", () => {
     it("forwards thinkingEffort in forwardedProps when effort is not off", async () => {
       const user = userEvent.setup();
       render(
-        <ErrorProvider>
+        <Providers>
           <ChatView />
-        </ErrorProvider>,
+        </Providers>,
       );
 
       // Select high thinking effort
@@ -253,9 +330,9 @@ describe("ChatView", () => {
     it("omits thinkingEffort when effort is off", async () => {
       const user = userEvent.setup();
       render(
-        <ErrorProvider>
+        <Providers>
           <ChatView />
-        </ErrorProvider>,
+        </Providers>,
       );
 
       // Default is "off" — just send a message
@@ -271,9 +348,9 @@ describe("ChatView", () => {
     it("omits thinkingEffort when model does not support thinking", async () => {
       const user = userEvent.setup();
       render(
-        <ErrorProvider>
+        <Providers>
           <ChatView />
-        </ErrorProvider>,
+        </Providers>,
       );
 
       // Select thinking effort first, then switch to non-thinking model
@@ -295,7 +372,11 @@ describe("ChatView", () => {
 
     it("resets thinking effort to off when switching to non-thinking model", async () => {
       const user = userEvent.setup();
-      render(<ChatView />);
+      render(
+        <Providers>
+          <ChatView />
+        </Providers>,
+      );
 
       // Select high effort
       await user.click(screen.getByLabelText("Effort de réflexion"));
@@ -323,7 +404,11 @@ describe("ChatView", () => {
     it("disables thinking selector when agent is running", () => {
       mockAgent.messages = [{ id: "1", role: "user", content: "Hello" }];
       mockAgent.isRunning = true;
-      render(<ChatView />);
+      render(
+        <Providers>
+          <ChatView />
+        </Providers>,
+      );
 
       expect(screen.getByLabelText("Effort de réflexion")).toBeDisabled();
     });
@@ -340,7 +425,11 @@ describe("ChatView", () => {
         },
         { id: "a1", role: "assistant", content: "Here is the answer." },
       ];
-      render(<ChatView />);
+      render(
+        <Providers>
+          <ChatView />
+        </Providers>,
+      );
       const reasoningText = screen.getByText("Let me think step by step...");
       const answerText = screen.getByText("Here is the answer.");
       expect(reasoningText).toBeInTheDocument();
@@ -356,7 +445,11 @@ describe("ChatView", () => {
         { id: "u1", role: "user", content: "Hello" },
         { id: "a1", role: "assistant", content: "Hi there" },
       ];
-      render(<ChatView />);
+      render(
+        <Providers>
+          <ChatView />
+        </Providers>,
+      );
       expect(screen.queryByText(/Let me think/i)).not.toBeInTheDocument();
       expect(screen.getByText("Hi there")).toBeInTheDocument();
     });
@@ -372,7 +465,11 @@ describe("ChatView", () => {
         },
         { id: "a1", role: "assistant", content: "Done!" },
       ];
-      render(<ChatView />);
+      render(
+        <Providers>
+          <ChatView />
+        </Providers>,
+      );
       const reasoning1 = screen.getByText(/First I need to call a tool/);
       const reasoning2 = screen.getByText(/Now with the result I can answer/);
       const answer = screen.getByText("Done!");
@@ -414,9 +511,9 @@ describe("ChatView", () => {
         { id: "a1", role: "assistant", content: "It's 22°C in Paris." },
       ];
       render(
-        <ErrorProvider>
+        <Providers>
           <ChatView />
-        </ErrorProvider>,
+        </Providers>,
       );
       expect(screen.getByText("get_weather")).toBeInTheDocument();
       expect(screen.getByText("It's 22°C in Paris.")).toBeInTheDocument();
@@ -439,12 +536,45 @@ describe("ChatView", () => {
       ];
       mockAgent.isRunning = true;
       render(
-        <ErrorProvider>
+        <Providers>
           <ChatView />
-        </ErrorProvider>,
+        </Providers>,
       );
       expect(screen.getByText("search")).toBeInTheDocument();
       expect(screen.getByTestId("tool-call-in-progress")).toBeInTheDocument();
+    });
+
+    it("renders and expands tool call before final assistant message", async () => {
+      const user = userEvent.setup();
+      mockAgent.messages = [
+        { id: "u1", role: "user", content: "Check something" },
+        {
+          id: "tc1",
+          role: "assistant",
+          toolCalls: [
+            {
+              id: "call_1",
+              type: "function",
+              function: { name: "search", arguments: '{"q":"test"}' },
+            },
+          ],
+        },
+      ];
+      mockAgent.isRunning = true;
+
+      render(
+        <Providers>
+          <ChatView />
+        </Providers>,
+      );
+
+      const toolHeader = screen.getByRole("button", { name: /search/i });
+      await user.click(toolHeader);
+
+      expect(toolHeader).toHaveAttribute("aria-expanded", "true");
+      expect(screen.getByText(/Arguments/i)).toBeInTheDocument();
+      expect(screen.getByText(/Running.../i)).toBeInTheDocument();
+      expect(screen.queryByText(/Done!|It's /i)).not.toBeInTheDocument();
     });
 
     it("renders multiple tool calls as separate items", () => {
@@ -484,13 +614,98 @@ describe("ChatView", () => {
         { id: "a1", role: "assistant", content: "Paris is warmer." },
       ];
       render(
-        <ErrorProvider>
+        <Providers>
           <ChatView />
-        </ErrorProvider>,
+        </Providers>,
       );
       const toolNames = screen.getAllByText("get_weather");
       expect(toolNames).toHaveLength(2);
       expect(screen.getByText("Paris is warmer.")).toBeInTheDocument();
+    });
+
+    it("hides tool-call items when tools selector is set to Hide", async () => {
+      const user = userEvent.setup();
+      mockAgent.messages = [
+        { id: "u1", role: "user", content: "What's the weather?" },
+        {
+          id: "tc1",
+          role: "assistant",
+          toolCalls: [
+            {
+              id: "call_1",
+              type: "function",
+              function: { name: "get_weather", arguments: '{"city":"Paris"}' },
+            },
+          ],
+        },
+        {
+          id: "t1",
+          role: "tool",
+          content: '{"temperature":22}',
+          toolCallId: "call_1",
+        },
+        { id: "a1", role: "assistant", content: "It's 22°C in Paris." },
+      ];
+
+      render(
+        <Providers>
+          <ChatView />
+        </Providers>,
+      );
+
+      expect(screen.getByText("get_weather")).toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "Tools" }));
+
+      expect(screen.getByRole("button", { name: "Tools" })).toHaveTextContent(
+        "Show",
+      );
+      const hiddenTool = screen.getByText("get_weather");
+      expect(hiddenTool.closest("div[aria-hidden='true']")).not.toBeNull();
+      expect(screen.getByText("It's 22°C in Paris.")).toBeInTheDocument();
+    });
+
+    it("shows tool-call items again when tools selector is toggled back to Show", async () => {
+      const user = userEvent.setup();
+      mockAgent.messages = [
+        { id: "u1", role: "user", content: "What's the weather?" },
+        {
+          id: "tc1",
+          role: "assistant",
+          toolCalls: [
+            {
+              id: "call_1",
+              type: "function",
+              function: { name: "get_weather", arguments: '{"city":"Paris"}' },
+            },
+          ],
+        },
+        {
+          id: "t1",
+          role: "tool",
+          content: '{"temperature":22}',
+          toolCallId: "call_1",
+        },
+      ];
+
+      render(
+        <Providers>
+          <ChatView />
+        </Providers>,
+      );
+
+      const toolsToggle = screen.getByRole("button", { name: "Tools" });
+      expect(toolsToggle).toHaveTextContent("Hide");
+
+      await user.click(toolsToggle);
+      expect(toolsToggle).toHaveTextContent("Show");
+      const hiddenTool = screen.getByText("get_weather");
+      expect(hiddenTool.closest("div[aria-hidden='true']")).not.toBeNull();
+
+      await user.click(toolsToggle);
+      expect(toolsToggle).toHaveTextContent("Hide");
+      const shownTool = screen.getByText("get_weather");
+      expect(shownTool.closest("div[aria-hidden='false']")).not.toBeNull();
     });
   });
 });

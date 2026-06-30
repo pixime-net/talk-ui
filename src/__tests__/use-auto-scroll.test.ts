@@ -1,7 +1,7 @@
 import { render, act } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { createElement } from "react";
-import { useAutoScroll } from "../hooks/useAutoScroll";
+import { useAutoScroll } from "../hooks/use-auto-scrolll";
 
 function TestComponent({ dep }: { dep: number }) {
   const { containerRef, bottomRef } = useAutoScroll([dep]);
