@@ -7,6 +7,7 @@ import { ThinkingEffortSelector } from "./ThinkingEffortSelector";
 import { MessageBubble } from "./MessageBubble";
 import { ReasoningBlock } from "./ReasoningBlock";
 import { ActivityIndicator } from "./ActivityIndicator";
+import { ErrorBlock } from "./ErrorBlock";
 import { useAgentError } from "../config/error-context";
 import { useAutoScroll } from "../hooks/useAutoScroll";
 import { normalizeMessages } from "../config/normalize-messages";
@@ -37,7 +38,7 @@ export function ChatView() {
     return () => unsubscribe();
   }, [copilotkit, setError]);
 
-  const visibleMessages = normalizeMessages(agent.messages as unknown[]);
+  const visibleMessages = normalizeMessages(agent.messages);
   const hasMessages = visibleMessages.length > 0 || error !== null;
 
   const { containerRef, bottomRef } = useAutoScroll([
@@ -125,17 +126,7 @@ export function ChatView() {
             ),
           )}
           {agent.isRunning && <ActivityIndicator />}
-          {error && (
-            <div className="flex justify-start">
-              <div
-                role="alert"
-                aria-live="polite"
-                className="max-w-[75%] rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-red-400"
-              >
-                <p className="text-sm">{error}</p>
-              </div>
-            </div>
-          )}
+          {error && <ErrorBlock message={error} />}
           <div ref={bottomRef} />
         </div>
       </div>

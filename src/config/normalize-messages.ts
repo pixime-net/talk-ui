@@ -1,3 +1,5 @@
+import { type Message } from "@ag-ui/client";
+
 export type ChatRole = "user" | "assistant" | "reasoning";
 
 export interface ChatMessageViewModel {
@@ -6,7 +8,9 @@ export interface ChatMessageViewModel {
   content: unknown;
 }
 
-export function normalizeMessages(messages: unknown[]): ChatMessageViewModel[] {
+export function normalizeMessages(
+  messages: ReadonlyArray<Message>,
+): ChatMessageViewModel[] {
   const result: ChatMessageViewModel[] = [];
 
   for (let index = 0; index < messages.length; index++) {
@@ -27,11 +31,27 @@ export function normalizeMessages(messages: unknown[]): ChatMessageViewModel[] {
       continue;
     }
 
-    if (typeof messageRecord.content !== "string") {
+    // AG-UI may create assistant tool-call containers without a content field.
+    // Keep those hidden from the chat timeline.
+    if (!Object.prototype.hasOwnProperty.call(messageRecord, "content")) {
       continue;
     }
 
-    if (messageRecord.content.trim() === "") {
+    if (messageRecord.role === "reasoning") {
+      if (typeof messageRecord.content !== "string") {
+        continue;
+      }
+
+      if (messageRecord.content.trim() === "") {
+        continue;
+      }
+    }
+
+    if (
+      (messageRecord.role === "user" || messageRecord.role === "assistant") &&
+      typeof messageRecord.content === "string" &&
+      messageRecord.content.trim() === ""
+    ) {
       continue;
     }
 

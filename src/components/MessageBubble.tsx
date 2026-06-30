@@ -38,7 +38,7 @@ export function MessageBubble({ role, content }: MessageBubbleProps) {
               : "bg-white/5 text-foreground"
           }`}
         >
-          <p className="whitespace-pre-wrap break-words">
+          <p className="whitespace-pre-wrap wrap-break-word">
             {getNonTextPlaceholder(content)}
           </p>
         </div>
@@ -54,7 +54,7 @@ export function MessageBubble({ role, content }: MessageBubbleProps) {
         }`}
       >
         {isUser ? (
-          <p className="whitespace-pre-wrap break-words">{textContent}</p>
+          <p className="whitespace-pre-wrap wrap-break-word">{textContent}</p>
         ) : (
           <MarkdownContent content={textContent} />
         )}

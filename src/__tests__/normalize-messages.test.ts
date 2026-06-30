@@ -123,6 +123,20 @@ describe("normalizeMessages", () => {
     });
   });
 
+  it("keeps assistant messages with non-string content for fallback rendering", () => {
+    const messages = [
+      { id: "u1", role: "user", content: "hello" },
+      { id: "a1", role: "assistant", content: { type: "video" } },
+    ];
+    const result = normalizeMessages(messages);
+    expect(result).toHaveLength(2);
+    expect(result[1]).toMatchObject({
+      id: "a1",
+      role: "assistant",
+      content: { type: "video" },
+    });
+  });
+
   it("assigns reasoning to correct positions in multiple exchanges", () => {
     const messages = [
       { id: "u1", role: "user", content: "first question" },

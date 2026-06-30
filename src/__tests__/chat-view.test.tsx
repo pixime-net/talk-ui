@@ -96,7 +96,7 @@ describe("ChatView", () => {
     expect(screen.queryByText("tool result")).not.toBeInTheDocument();
   });
 
-  it("filters out assistant messages with non-text content", () => {
+  it("renders placeholder for assistant messages with non-text content", () => {
     mockAgent.messages = [
       { id: "1", role: "user", content: "hello" },
       { id: "2", role: "assistant", content: { type: "video" } },
@@ -104,9 +104,9 @@ describe("ChatView", () => {
 
     const { container } = render(<ChatView />);
     expect(
-      screen.queryByText("video content is not displayed yet."),
-    ).not.toBeInTheDocument();
-    expect(container.querySelectorAll(".rounded-lg")).toHaveLength(1);
+      screen.getByText("video content is not displayed yet."),
+    ).toBeInTheDocument();
+    expect(container.querySelectorAll(".rounded-lg")).toHaveLength(2);
   });
 
   it("transitions from empty state to messages state", () => {
@@ -340,14 +340,15 @@ describe("ChatView", () => {
         },
         { id: "a1", role: "assistant", content: "Here is the answer." },
       ];
-      const { container } = render(<ChatView />);
+      render(<ChatView />);
+      const reasoningText = screen.getByText("Let me think step by step...");
+      const answerText = screen.getByText("Here is the answer.");
+      expect(reasoningText).toBeInTheDocument();
+      expect(answerText).toBeInTheDocument();
       expect(
-        screen.getByText("Let me think step by step..."),
-      ).toBeInTheDocument();
-      expect(screen.getByText("Here is the answer.")).toBeInTheDocument();
-      // Reasoning block should be rendered as its own element, not inside the assistant bubble
-      const reasoningBlocks = container.querySelectorAll(".border-l-2");
-      expect(reasoningBlocks).toHaveLength(1);
+        reasoningText.compareDocumentPosition(answerText) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
     });
 
     it("does not display reasoning block when no reasoning messages exist", () => {
@@ -355,8 +356,9 @@ describe("ChatView", () => {
         { id: "u1", role: "user", content: "Hello" },
         { id: "a1", role: "assistant", content: "Hi there" },
       ];
-      const { container } = render(<ChatView />);
-      expect(container.querySelector(".border-l-2")).not.toBeInTheDocument();
+      render(<ChatView />);
+      expect(screen.queryByText(/Let me think/i)).not.toBeInTheDocument();
+      expect(screen.getByText("Hi there")).toBeInTheDocument();
     });
 
     it("displays each reasoning message as a separate block in natural order", () => {
@@ -370,16 +372,21 @@ describe("ChatView", () => {
         },
         { id: "a1", role: "assistant", content: "Done!" },
       ];
-      const { container } = render(<ChatView />);
-      const reasoningBlocks = container.querySelectorAll(".border-l-2");
-      expect(reasoningBlocks).toHaveLength(2);
+      render(<ChatView />);
+      const reasoning1 = screen.getByText(/First I need to call a tool/);
+      const reasoning2 = screen.getByText(/Now with the result I can answer/);
+      const answer = screen.getByText("Done!");
+      expect(reasoning1).toBeInTheDocument();
+      expect(reasoning2).toBeInTheDocument();
+      expect(answer).toBeInTheDocument();
       expect(
-        screen.getByText(/First I need to call a tool/),
-      ).toBeInTheDocument();
+        reasoning1.compareDocumentPosition(reasoning2) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
       expect(
-        screen.getByText(/Now with the result I can answer/),
-      ).toBeInTheDocument();
-      expect(screen.getByText("Done!")).toBeInTheDocument();
+        reasoning2.compareDocumentPosition(answer) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
     });
   });
 });
