@@ -6,6 +6,7 @@ import { ModelSelector } from "./ModelSelector";
 import { ThinkingEffortSelector } from "./ThinkingEffortSelector";
 import { MessageBubble } from "./MessageBubble";
 import { ReasoningBlock } from "./ReasoningBlock";
+import { ToolCallItem } from "./ToolCallItem";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { ErrorBlock } from "./ErrorBlock";
 import { useAgentError } from "../config/error-context";
@@ -117,6 +118,13 @@ export function ChatView() {
           {visibleMessages.map((msg) =>
             msg.role === "reasoning" ? (
               <ReasoningBlock key={msg.id} content={msg.content as string} />
+            ) : msg.role === "tool-call" ? (
+              <ToolCallItem
+                key={msg.id}
+                toolName={msg.toolName ?? "unknown"}
+                toolArgs={msg.toolArgs}
+                toolResult={msg.toolResult}
+              />
             ) : (
               <MessageBubble
                 key={msg.id}

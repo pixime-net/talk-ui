@@ -389,4 +389,108 @@ describe("ChatView", () => {
       ).toBeTruthy();
     });
   });
+
+  describe("tool call display", () => {
+    it("renders tool-call items in the message flow", () => {
+      mockAgent.messages = [
+        { id: "u1", role: "user", content: "What's the weather?" },
+        {
+          id: "tc1",
+          role: "assistant",
+          toolCalls: [
+            {
+              id: "call_1",
+              type: "function",
+              function: { name: "get_weather", arguments: '{"city":"Paris"}' },
+            },
+          ],
+        },
+        {
+          id: "t1",
+          role: "tool",
+          content: '{"temperature":22}',
+          toolCallId: "call_1",
+        },
+        { id: "a1", role: "assistant", content: "It's 22°C in Paris." },
+      ];
+      render(
+        <ErrorProvider>
+          <ChatView />
+        </ErrorProvider>,
+      );
+      expect(screen.getByText("get_weather")).toBeInTheDocument();
+      expect(screen.getByText("It's 22°C in Paris.")).toBeInTheDocument();
+    });
+
+    it("shows in-progress indicator during active tool call", () => {
+      mockAgent.messages = [
+        { id: "u1", role: "user", content: "Check something" },
+        {
+          id: "tc1",
+          role: "assistant",
+          toolCalls: [
+            {
+              id: "call_1",
+              type: "function",
+              function: { name: "search", arguments: '{"q":"test"}' },
+            },
+          ],
+        },
+      ];
+      mockAgent.isRunning = true;
+      render(
+        <ErrorProvider>
+          <ChatView />
+        </ErrorProvider>,
+      );
+      expect(screen.getByText("search")).toBeInTheDocument();
+      expect(screen.getByTestId("tool-call-in-progress")).toBeInTheDocument();
+    });
+
+    it("renders multiple tool calls as separate items", () => {
+      mockAgent.messages = [
+        { id: "u1", role: "user", content: "Compare" },
+        {
+          id: "tc1",
+          role: "assistant",
+          toolCalls: [
+            {
+              id: "call_1",
+              type: "function",
+              function: { name: "get_weather", arguments: '{"city":"Paris"}' },
+            },
+            {
+              id: "call_2",
+              type: "function",
+              function: {
+                name: "get_weather",
+                arguments: '{"city":"London"}',
+              },
+            },
+          ],
+        },
+        {
+          id: "t1",
+          role: "tool",
+          content: '{"temperature":22}',
+          toolCallId: "call_1",
+        },
+        {
+          id: "t2",
+          role: "tool",
+          content: '{"temperature":18}',
+          toolCallId: "call_2",
+        },
+        { id: "a1", role: "assistant", content: "Paris is warmer." },
+      ];
+      render(
+        <ErrorProvider>
+          <ChatView />
+        </ErrorProvider>,
+      );
+      const toolNames = screen.getAllByText("get_weather");
+      expect(toolNames).toHaveLength(2);
+      expect(screen.getByText("Paris is warmer.")).toBeInTheDocument();
+    });
+  });
 });
