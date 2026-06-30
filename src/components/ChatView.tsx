@@ -5,9 +5,11 @@ import { ChatInput } from "./ChatInput";
 import { ModelSelector } from "./ModelSelector";
 import { ThinkingEffortSelector } from "./ThinkingEffortSelector";
 import { MessageBubble } from "./MessageBubble";
+import { ReasoningBlock } from "./ReasoningBlock";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { useAgentError } from "../config/error-context";
 import { useAutoScroll } from "../hooks/useAutoScroll";
+import { normalizeMessages } from "../config/normalize-messages";
 import {
   DEFAULT_MODEL,
   DEFAULT_THINKING_EFFORT,
@@ -15,50 +17,6 @@ import {
   type ModelAlias,
   type ThinkingEffort,
 } from "../config/models";
-
-type ChatRole = "user" | "assistant";
-
-interface ChatMessageViewModel {
-  id: string;
-  role: ChatRole;
-  content: unknown;
-}
-
-function normalizeMessages(messages: unknown[]): ChatMessageViewModel[] {
-  return messages.flatMap((message, index) => {
-    if (!message || typeof message !== "object") return [];
-
-    const messageRecord = message as {
-      id?: unknown;
-      role?: unknown;
-      content?: unknown;
-    };
-
-    if (messageRecord.role !== "user" && messageRecord.role !== "assistant") {
-      return [];
-    }
-
-    if (
-      typeof messageRecord.content === "string" &&
-      messageRecord.content.trim() === ""
-    ) {
-      return [];
-    }
-
-    const id =
-      typeof messageRecord.id === "string" && messageRecord.id.trim() !== ""
-        ? messageRecord.id
-        : `msg-${index}`;
-
-    return [
-      {
-        id,
-        role: messageRecord.role,
-        content: messageRecord.content,
-      },
-    ];
-  });
-}
 
 export function ChatView() {
   const { agent } = useAgent();
@@ -155,9 +113,17 @@ export function ChatView() {
         className="flex-1 overflow-y-auto p-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20 hover:[&::-webkit-scrollbar-thumb]:bg-white/30"
       >
         <div className="mx-auto flex max-w-2xl flex-col gap-3">
-          {visibleMessages.map((msg) => (
-            <MessageBubble key={msg.id} role={msg.role} content={msg.content} />
-          ))}
+          {visibleMessages.map((msg) =>
+            msg.role === "reasoning" ? (
+              <ReasoningBlock key={msg.id} content={msg.content as string} />
+            ) : (
+              <MessageBubble
+                key={msg.id}
+                role={msg.role}
+                content={msg.content}
+              />
+            ),
+          )}
           {agent.isRunning && <ActivityIndicator />}
           {error && (
             <div className="flex justify-start">
