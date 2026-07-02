@@ -6,7 +6,7 @@ import { ReasoningBlock } from "./ReasoningBlock";
 import { ToolCallItem } from "./ToolCallItem";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { ErrorBlock } from "./ErrorBlock";
-import { useAutoScroll } from "../hooks/use-auto-scrolll";
+import { useAutoScroll } from "../hooks/use-auto-scroll";
 import { useChatUIContext } from "../context/use-chat-ui-context";
 
 export function ChatView() {
@@ -54,7 +54,7 @@ export function ChatView() {
           aria-label="Tools"
           onClick={() => setShowTools(!showTools)}
           disabled={isRunning}
-          className="flex min-w-[62px] items-center justify-center gap-1 rounded-md border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] text-muted transition-colors hover:border-white/30 hover:text-foreground disabled:opacity-50"
+          className="flex min-w-15.5 items-center justify-center gap-1 rounded-md border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] text-muted transition-colors hover:border-white/30 hover:text-foreground disabled:opacity-50"
         >
           <span className="text-xs" aria-hidden="true">
             🔧
@@ -88,10 +88,11 @@ export function ChatView() {
                 key={msg.id}
                 className={`overflow-hidden transition-all duration-200 ease-out ${
                   showTools
-                    ? "max-h-[360px] translate-y-0 opacity-100"
+                    ? "max-h-90 overflow-y-auto translate-y-0 opacity-100"
                     : "pointer-events-none max-h-0 -translate-y-1 opacity-0"
                 }`}
                 aria-hidden={!showTools}
+                inert={!showTools}
               >
                 <ToolCallItem
                   toolName={msg.toolName ?? "unknown"}

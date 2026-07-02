@@ -117,6 +117,45 @@ describe("ChatUIContext", () => {
     expect(screen.getByTestId("messages-count")).toHaveTextContent("2");
   });
 
+  it("reconciles out-of-order tool results through provider visibleMessages", () => {
+    mockAgent.messages = [
+      {
+        id: "tool-result-first",
+        role: "tool",
+        toolCallId: "call_42",
+        content: '{"answer":42}',
+      },
+      {
+        id: "assistant-with-tool-call",
+        role: "assistant",
+        toolCalls: [
+          {
+            id: "call_42",
+            type: "function",
+            function: { name: "lookup", arguments: '{"id":42}' },
+          },
+        ],
+      },
+    ];
+
+    renderProvider();
+
+    const messages = JSON.parse(
+      screen.getByTestId("messages-json").textContent || "[]",
+    ) as Array<{
+      role: string;
+      toolCallId?: string;
+      toolResult?: string;
+      toolArgs?: string;
+    }>;
+
+    const toolCall = messages.find((msg) => msg.role === "tool-call");
+    expect(toolCall).toBeDefined();
+    expect(toolCall?.toolCallId).toBe("call_42");
+    expect(toolCall?.toolArgs).toBe('{"id":42}');
+    expect(toolCall?.toolResult).toBe('{"answer":42}');
+  });
+
   it("sends message with default forwarded props", async () => {
     const user = userEvent.setup();
     renderProvider();

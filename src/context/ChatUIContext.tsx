@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState, type PropsWithChildren } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type PropsWithChildren,
+} from "react";
 import { useAgent, useCopilotKit } from "@copilotkit/react-core/v2";
 import { useAgentError } from "../config/error-context";
 import {
@@ -25,9 +31,8 @@ export function ChatUIProvider({ children }: PropsWithChildren) {
   const [thinkingEffort, setThinkingEffortState] = useState<ThinkingEffort>(
     DEFAULT_THINKING_EFFORT,
   );
-  const [optimisticUserMessages, setOptimisticUserMessages] = useState<
-    ChatMessageViewModel[]
-  >([]);
+  const [optimisticUserMessage, setOptimisticUserMessage] =
+    useState<ChatMessageViewModel | null>(null);
 
   useEffect(() => {
     const { unsubscribe } = copilotkit.subscribe({
@@ -44,83 +49,101 @@ export function ChatUIProvider({ children }: PropsWithChildren) {
   );
 
   const visibleMessages = useMemo(() => {
-    if (optimisticUserMessages.length === 0) {
+    if (!optimisticUserMessage) {
       return normalizedMessages;
     }
 
-    const normalizedIds = new Set(normalizedMessages.map((msg) => msg.id));
-    const pendingOptimistic = optimisticUserMessages.filter(
-      (msg) => !normalizedIds.has(msg.id),
+    const optimisticMessageResolved = normalizedMessages.some(
+      (msg) => msg.id === optimisticUserMessage.id,
     );
-
-    if (pendingOptimistic.length === 0) {
+    if (optimisticMessageResolved) {
       return normalizedMessages;
     }
 
-    return [...normalizedMessages, ...pendingOptimistic];
-  }, [normalizedMessages, optimisticUserMessages]);
+    return [...normalizedMessages, optimisticUserMessage];
+  }, [normalizedMessages, optimisticUserMessage]);
 
-  const sendMessage = (content: string) => {
-    if (agent.isRunning) return;
+  const sendMessage = useCallback(
+    (content: string) => {
+      if (agent.isRunning) return;
+      if (content.trim() === "") return;
 
-    setError(null);
-    const messageId = crypto.randomUUID();
-    const optimisticMessage: ChatMessageViewModel = {
-      id: messageId,
-      role: "user",
-      content,
-    };
+      setError(null);
+      const messageId = crypto.randomUUID();
+      const optimisticMessage: ChatMessageViewModel = {
+        id: messageId,
+        role: "user",
+        content,
+      };
 
-    setOptimisticUserMessages((prev) => [...prev, optimisticMessage]);
+      setOptimisticUserMessage(optimisticMessage);
 
-    agent.addMessage({
-      id: messageId,
-      role: "user",
-      content,
-    });
-
-    const forwardedProps: Record<string, string> = { model: selectedModel };
-    if (thinkingEffort !== "off" && supportsThinking(selectedModel)) {
-      forwardedProps.thinkingEffort = thinkingEffort;
-    }
-
-    void copilotkit
-      .runAgent({ agent, forwardedProps })
-      .catch((caught: unknown) => {
-        const fallback = "An unexpected error occurred";
-        if (caught instanceof Error && caught.message.trim() !== "") {
-          setError(caught.message);
-          return;
-        }
-        setError(fallback);
+      agent.addMessage({
+        id: messageId,
+        role: "user",
+        content,
       });
-  };
 
-  const setSelectedModel = (model: ModelAlias) => {
+      const forwardedProps: Record<string, string> = { model: selectedModel };
+      if (thinkingEffort !== "off" && supportsThinking(selectedModel)) {
+        forwardedProps.thinkingEffort = thinkingEffort;
+      }
+
+      void copilotkit
+        .runAgent({ agent, forwardedProps })
+        .catch((caught: unknown) => {
+          const fallback = "An unexpected error occurred";
+          if (caught instanceof Error && caught.message.trim() !== "") {
+            setError(caught.message);
+            return;
+          }
+          setError(fallback);
+        });
+    },
+    [agent, copilotkit, selectedModel, setError, thinkingEffort],
+  );
+
+  const setSelectedModel = useCallback((model: ModelAlias) => {
     setSelectedModelState(model);
     if (!supportsThinking(model)) {
       setThinkingEffortState(DEFAULT_THINKING_EFFORT);
     }
-  };
+  }, []);
 
-  const setThinkingEffort = (effort: ThinkingEffort) => {
+  const setThinkingEffort = useCallback((effort: ThinkingEffort) => {
     setThinkingEffortState(effort);
-  };
+  }, []);
 
-  const value: ChatUIContextValue = {
-    visibleMessages,
-    isRunning: agent.isRunning,
-    error,
-    showTools,
-    selectedModel,
-    thinkingEffort,
-    supportsThinkingForSelectedModel: supportsThinking(selectedModel),
-    sendMessage,
-    setShowTools,
-    setSelectedModel,
-    setThinkingEffort,
-    clearError: () => setError(null),
-  };
+  const clearError = useCallback(() => setError(null), [setError]);
+
+  const value = useMemo<ChatUIContextValue>(
+    () => ({
+      visibleMessages,
+      isRunning: agent.isRunning,
+      error,
+      showTools,
+      selectedModel,
+      thinkingEffort,
+      supportsThinkingForSelectedModel: supportsThinking(selectedModel),
+      sendMessage,
+      setShowTools,
+      setSelectedModel,
+      setThinkingEffort,
+      clearError,
+    }),
+    [
+      agent.isRunning,
+      clearError,
+      error,
+      selectedModel,
+      sendMessage,
+      setSelectedModel,
+      setThinkingEffort,
+      showTools,
+      thinkingEffort,
+      visibleMessages,
+    ],
+  );
 
   return (
     <ChatUIContext.Provider value={value}>{children}</ChatUIContext.Provider>
