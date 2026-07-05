@@ -1,8 +1,8 @@
 ---
 name: mastering-typescript
 description: |
-  Master enterprise-grade TypeScript development with type-safe patterns, modern tooling, and framework integration. This skill provides comprehensive guidance for TypeScript 5.9+, covering type system fundamentals (generics, mapped types, conditional types, satisfies operator), enterprise patterns (error handling, validation with Zod), React integration for type-safe frontends, NestJS for scalable APIs, and LangChain.js for AI applications. Use when building type-safe applications, migrating JavaScript codebases, configuring modern toolchains (Vite 7, pnpm, ESLint, Vitest), implementing advanced type patterns, or comparing TypeScript with Java/Python approaches.
-version: 1.0.0
+  Master enterprise-grade TypeScript development with type-safe patterns, modern tooling, and framework integration. This skill provides comprehensive guidance for TypeScript 5.9+, covering type system fundamentals (generics, mapped types, conditional types, satisfies operator), enterprise patterns (error handling, validation with Zod), React integration for type-safe frontends, NestJS for scalable APIs, and LangChain.js for AI applications. Use when building type-safe applications, migrating JavaScript codebases, configuring modern toolchains (Vite 8, pnpm, ESLint, Vitest), implementing advanced type patterns, or comparing TypeScript with Java/Python approaches.
+version: 1.1.0
 category: programming-languages
 triggers:
   - typescript
@@ -34,7 +34,7 @@ tags:
 
 Build enterprise-grade, type-safe applications with TypeScript 5.9+.
 
-> **Compatibility:** TypeScript 5.9+, Node.js 22 LTS, Vite 7, NestJS 11, React 19
+> **Compatibility:** TypeScript 5.9+, Node.js 22 LTS, Vite 8, NestJS 11, React 19
 
 ## Quick Start
 
@@ -275,18 +275,20 @@ type PersonGetters = Getters<Person>;
 ### React with TypeScript
 
 ```typescript
-// Typed functional component
+// Typed function component (prefer plain functions over React.FC)
 interface ButtonProps {
   label: string;
   onClick: () => void;
   variant?: "primary" | "secondary";
 }
 
-const Button: React.FC<ButtonProps> = ({ label, onClick, variant = "primary" }) => (
-  <button className={variant} onClick={onClick}>
-    {label}
-  </button>
-);
+function Button({ label, onClick, variant = "primary" }: ButtonProps) {
+  return (
+    <button className={variant} onClick={onClick}>
+      {label}
+    </button>
+  );
+}
 
 // Typed hooks
 const [count, setCount] = useState<number>(0);
@@ -358,13 +360,13 @@ if (result.success) {
 | ---------- | ------- | ----------------------------- |
 | TypeScript | 5.9+    | Type checking and compilation |
 | Node.js    | 22 LTS  | Runtime environment           |
-| Vite       | 7.x     | Build tool and dev server     |
+| Vite       | 8.x     | Build tool and dev server     |
 | pnpm       | 9.x     | Package manager               |
-| ESLint     | 9.x     | Linting with flat config      |
-| Vitest     | 3.x     | Testing framework             |
+| ESLint     | 10.x    | Linting with flat config      |
+| Vitest     | 4.x     | Testing framework             |
 | Prettier   | 3.x     | Code formatting               |
 
-### ESLint Flat Config (ESLint 9+)
+### ESLint Flat Config (ESLint 10+)
 
 ```javascript
 // eslint.config.js
@@ -441,7 +443,7 @@ See [enterprise-patterns.md](references/enterprise-patterns.md) for comprehensiv
 ## Assets
 
 - [tsconfig-template.json](assets/tsconfig-template.json) — Strict enterprise config
-- [eslint-template.js](assets/eslint-template.js) — ESLint 9 flat config
+- [eslint-template.js](assets/eslint-template.js) — ESLint 10 flat config
 
 ## Scripts
 

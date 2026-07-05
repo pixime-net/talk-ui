@@ -118,7 +118,7 @@ echo "Checking linting setup..."
 if [[ -f "eslint.config.js" ]] || [[ -f "eslint.config.mjs" ]]; then
     pass "ESLint flat config found"
 elif [[ -f ".eslintrc.js" ]] || [[ -f ".eslintrc.json" ]]; then
-    warn "Legacy ESLint config found (migrate to flat config for ESLint 9+)"
+    warn "Legacy ESLint config found (migrate to flat config for ESLint 10+)"
 else
     warn "ESLint not configured"
 fi

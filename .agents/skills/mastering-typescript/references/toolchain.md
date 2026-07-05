@@ -9,7 +9,7 @@ Modern TypeScript toolchain configuration for 2025.
 - [TypeScript Configuration](#typescript-configuration)
 - [Package Manager (pnpm)](#package-manager-pnpm)
 - [Build Tool (Vite)](#build-tool-vite)
-- [Linting (ESLint 9)](#linting-eslint-9)
+- [Linting (ESLint 10)](#linting-eslint-10)
 - [Testing (Vitest)](#testing-vitest)
 - [Formatting (Prettier)](#formatting-prettier)
 
@@ -260,7 +260,7 @@ export default defineConfig({
 
 ---
 
-## Linting (ESLint 9)
+## Linting (ESLint 10)
 
 ### Flat Config Format
 

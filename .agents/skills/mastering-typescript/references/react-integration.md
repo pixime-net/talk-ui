@@ -34,10 +34,10 @@ function Greeting({ name, age }: GreetingProps) {
   );
 }
 
-// With React.FC (optional, some prefer explicit return type)
-const GreetingFC: React.FC<GreetingProps> = ({ name, age }) => {
+// With React.FC (avoid — prefer plain functions for better generics support)
+function GreetingWithFC({ name, age }: GreetingProps) {
   return <div>Hello, {name}!</div>;
-};
+}
 
 // Component with children
 interface CardProps {

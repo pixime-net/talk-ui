@@ -1,4 +1,4 @@
-// eslint.config.js - ESLint 9+ Flat Config for TypeScript
+// eslint.config.js - ESLint 10+ Flat Config for TypeScript
 // Copy this file to your project root as eslint.config.js
 
 import eslint from '@eslint/js';
