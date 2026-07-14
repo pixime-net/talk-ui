@@ -82,7 +82,7 @@ export function ChatView() {
         <div className="mx-auto flex max-w-2xl flex-col gap-3">
           {visibleMessages.map((msg) =>
             msg.role === "reasoning" ? (
-              <ReasoningBlock key={msg.id} content={msg.content as string} />
+              <ReasoningBlock key={msg.id} content={msg.content} />
             ) : msg.role === "tool-call" ? (
               <div
                 key={msg.id}

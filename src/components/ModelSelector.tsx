@@ -63,7 +63,8 @@ export function ModelSelector({
       case " ":
         e.preventDefault();
         if (focusedIndex >= 0) {
-          onChange(MODEL_ALIASES[focusedIndex]);
+          const model = MODEL_ALIASES[focusedIndex];
+          if (model !== undefined) onChange(model);
           setOpen(false);
         }
         break;

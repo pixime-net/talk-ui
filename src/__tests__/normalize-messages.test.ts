@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   normalizeMessages,
-  type ChatMessageViewModel,
+  type ToolCallMessageVM,
 } from "../config/normalize-messages";
 
 describe("normalizeMessages", () => {
@@ -90,8 +90,8 @@ describe("normalizeMessages", () => {
     ];
     const result = normalizeMessages(messages);
     expect(result).toHaveLength(2);
-    expect(result[0].role).toBe("user");
-    expect(result[1].role).toBe("assistant");
+    expect(result[0]?.role).toBe("user");
+    expect(result[1]?.role).toBe("assistant");
   });
 
   it("includes trailing reasoning messages", () => {
@@ -265,7 +265,7 @@ describe("normalizeMessages", () => {
       const result = normalizeMessages(messages);
       const toolCallVM = result.find(
         (m) => m.role === "tool-call",
-      ) as ChatMessageViewModel;
+      ) as ToolCallMessageVM;
       expect(toolCallVM).toBeDefined();
       expect(toolCallVM.toolName).toBe("get_weather");
       expect(toolCallVM.toolArgs).toBe('{"city":"Paris"}');
@@ -291,7 +291,7 @@ describe("normalizeMessages", () => {
       const result = normalizeMessages(messages);
       const toolCallVM = result.find(
         (m) => m.role === "tool-call",
-      ) as ChatMessageViewModel;
+      ) as ToolCallMessageVM;
       expect(toolCallVM).toBeDefined();
       expect(toolCallVM.toolName).toBe("get_weather");
       expect(toolCallVM.toolResult).toBeUndefined();
@@ -336,12 +336,12 @@ describe("normalizeMessages", () => {
       const result = normalizeMessages(messages);
       const toolCalls = result.filter((m) => m.role === "tool-call");
       expect(toolCalls).toHaveLength(2);
-      expect(toolCalls[0].toolName).toBe("get_weather");
-      expect(toolCalls[0].toolArgs).toBe('{"city":"Paris"}');
-      expect(toolCalls[0].toolResult).toBe('{"temperature":22}');
-      expect(toolCalls[1].toolName).toBe("get_weather");
-      expect(toolCalls[1].toolArgs).toBe('{"city":"London"}');
-      expect(toolCalls[1].toolResult).toBe('{"temperature":18}');
+      expect(toolCalls[0]?.toolName).toBe("get_weather");
+      expect(toolCalls[0]?.toolArgs).toBe('{"city":"Paris"}');
+      expect(toolCalls[0]?.toolResult).toBe('{"temperature":22}');
+      expect(toolCalls[1]?.toolName).toBe("get_weather");
+      expect(toolCalls[1]?.toolArgs).toBe('{"city":"London"}');
+      expect(toolCalls[1]?.toolResult).toBe('{"temperature":18}');
     });
 
     it("skips unmatched tool messages (no matching tool-call VM)", () => {

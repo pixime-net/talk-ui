@@ -5,14 +5,16 @@ interface MessageBubbleProps {
   content: unknown;
 }
 
+function isWithType(value: unknown): value is { type: unknown } {
+  return typeof value === "object" && value !== null && "type" in value;
+}
+
 function getContentType(content: unknown): string | null {
-  if (!content || typeof content !== "object") return null;
-  if (!("type" in content)) return null;
+  if (!content || !isWithType(content)) return null;
 
-  const typeValue = (content as { type?: unknown }).type;
-  if (typeof typeValue !== "string") return null;
+  if (typeof content.type !== "string") return null;
 
-  const normalized = typeValue.trim().toLowerCase();
+  const normalized = content.type.trim().toLowerCase();
   return normalized === "" ? null : normalized;
 }
 

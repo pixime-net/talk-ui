@@ -63,7 +63,8 @@ export function ThinkingEffortSelector({
       case " ":
         e.preventDefault();
         if (focusedIndex >= 0) {
-          onChange(THINKING_EFFORTS[focusedIndex]);
+          const effort = THINKING_EFFORTS[focusedIndex];
+          if (effort !== undefined) onChange(effort);
           setOpen(false);
         }
         break;

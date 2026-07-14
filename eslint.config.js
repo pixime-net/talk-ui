@@ -32,5 +32,15 @@ export default tseslint.config(
       "react-refresh/only-export-components": "off",
     },
   },
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/routeTree.gen.ts"],
+    rules: {
+      "@typescript-eslint/consistent-type-assertions": [
+        "error",
+        { assertionStyle: "as", objectLiteralTypeAssertions: "never" },
+      ],
+    },
+  },
   prettier,
 );

@@ -216,9 +216,9 @@ describe("ChatUIContext", () => {
   it("subscribes to copilot errors", () => {
     renderProvider();
     expect(mockCopilotKit.subscribe).toHaveBeenCalledTimes(1);
-    const args = mockCopilotKit.subscribe.mock.calls[0][0];
-    expect(args).toHaveProperty("onError");
-    expect(typeof args.onError).toBe("function");
+    expect(mockCopilotKit.subscribe).toHaveBeenCalledWith(
+      expect.objectContaining({ onError: expect.any(Function) }),
+    );
   });
 
   it("exposes running state", () => {

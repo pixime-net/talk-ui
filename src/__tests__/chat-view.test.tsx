@@ -7,7 +7,7 @@ import { DEFAULT_MODEL } from "../config/models";
 import { ChatUIProvider } from "../context/ChatUIContext";
 
 const mockAgent = {
-  messages: [] as { id: string; role: string; content: unknown }[],
+  messages: [] as Record<string, unknown>[],
   isRunning: false,
   addMessage: vi.fn(),
   agentId: "default",

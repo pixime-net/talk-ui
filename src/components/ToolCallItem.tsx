@@ -2,8 +2,8 @@ import { useState } from "react";
 
 interface ToolCallItemProps {
   toolName: string;
-  toolArgs?: string;
-  toolResult?: string;
+  toolArgs?: string | undefined;
+  toolResult?: string | undefined;
 }
 
 function formatJson(raw: string): string {
