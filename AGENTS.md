@@ -20,11 +20,3 @@ Les agents bmad référencent leurs skills via `{project-root}/.agents/skills/` 
 | Skill                  | Description                                                                              |
 | ---------------------- | ---------------------------------------------------------------------------------------- |
 | `mastering-typescript` | TypeScript avancé — types, génériques, patterns entreprise, intégration React, toolchain |
-
-<!-- lean-ctx -->
-
-## lean-ctx
-
-lean-ctx is active — the MCP tools replace native equivalents.
-Full rules: LEAN-CTX.md (open on demand — do not auto-load).
-<!-- /lean-ctx -->
