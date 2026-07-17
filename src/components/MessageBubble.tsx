@@ -1,7 +1,7 @@
 import { MarkdownContent } from "./MarkdownContent";
 
 interface MessageBubbleProps {
-  role: "user" | "assistant" | string;
+  role: "user" | "assistant" | (string & {});
   content: unknown;
 }
 

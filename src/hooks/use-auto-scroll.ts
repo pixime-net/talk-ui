@@ -19,7 +19,9 @@ export function useAutoScroll(deps: unknown[]) {
     const container = containerRef.current;
     if (!container) return;
     container.addEventListener("scroll", checkIfAtBottom, { passive: true });
-    return () => container.removeEventListener("scroll", checkIfAtBottom);
+    return () => {
+      container.removeEventListener("scroll", checkIfAtBottom);
+    };
   }, [checkIfAtBottom]);
 
   useEffect(() => {

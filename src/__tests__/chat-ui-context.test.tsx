@@ -67,9 +67,25 @@ function TestConsumer() {
         {String(supportsThinkingForSelectedModel)}
       </div>
       <div data-testid="error">{error ?? ""}</div>
-      <button onClick={() => sendMessage("hello")}>send</button>
-      <button onClick={() => setThinkingEffort("high")}>set-high</button>
-      <button onClick={() => setSelectedModel("gpt-5.4")}>
+      <button
+        onClick={() => {
+          sendMessage("hello");
+        }}
+      >
+        send
+      </button>
+      <button
+        onClick={() => {
+          setThinkingEffort("high");
+        }}
+      >
+        set-high
+      </button>
+      <button
+        onClick={() => {
+          setSelectedModel("gpt-5.4");
+        }}
+      >
         set-model-gpt54
       </button>
     </div>

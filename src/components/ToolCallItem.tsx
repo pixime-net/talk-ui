@@ -20,9 +20,9 @@ export function ToolCallItem({
   toolResult,
 }: ToolCallItemProps) {
   const [expanded, setExpanded] = useState(false);
-  const isInProgress = toolResult === undefined || toolResult === null;
+  const isInProgress = toolResult === undefined;
   const hasNonEmptyResult =
-    toolResult !== undefined && toolResult !== null && toolResult.trim() !== "";
+    toolResult !== undefined && toolResult.trim() !== "";
 
   return (
     <div className="rounded-lg bg-white/5 px-2.5 py-1.5">
@@ -30,7 +30,9 @@ export function ToolCallItem({
         type="button"
         className="flex w-full items-center gap-1.5 cursor-pointer"
         aria-expanded={expanded}
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => {
+          setExpanded(!expanded);
+        }}
         data-testid="tool-call-header"
       >
         <span className="text-xs">🔧</span>

@@ -26,11 +26,7 @@ function RootLayout() {
 
   return (
     <AgentErrorContext.Provider value={{ error, setError }}>
-      <CopilotKit
-        agents__unsafe_dev_only={agents}
-        showDevConsole={false}
-        onError={handleError}
-      >
+      <CopilotKit agents__unsafe_dev_only={agents} onError={handleError}>
         <Outlet />
       </CopilotKit>
     </AgentErrorContext.Provider>

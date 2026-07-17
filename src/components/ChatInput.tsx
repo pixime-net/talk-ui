@@ -1,4 +1,9 @@
-import { type FormEvent, type KeyboardEvent, useRef, useState } from "react";
+import {
+  type SyntheticEvent,
+  type KeyboardEvent,
+  useRef,
+  useState,
+} from "react";
 
 interface ChatInputProps {
   onSend: (content: string) => void;
@@ -16,7 +21,7 @@ export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   };
 
-  const handleSubmit = (e?: FormEvent) => {
+  const handleSubmit = (e?: SyntheticEvent) => {
     e?.preventDefault();
     const trimmed = input.trim();
     if (!trimmed || disabled) return;

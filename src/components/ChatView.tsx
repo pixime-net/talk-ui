@@ -52,7 +52,9 @@ export function ChatView() {
         <button
           type="button"
           aria-label="Tools"
-          onClick={() => setShowTools(!showTools)}
+          onClick={() => {
+            setShowTools(!showTools);
+          }}
           disabled={isRunning}
           className="flex min-w-15.5 items-center justify-center gap-1 rounded-md border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] text-muted transition-colors hover:border-white/30 hover:text-foreground disabled:opacity-50"
         >

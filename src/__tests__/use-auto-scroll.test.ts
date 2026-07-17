@@ -35,7 +35,7 @@ describe("useAutoScroll", () => {
     });
   });
 
-  it("does NOT scroll when user has scrolled up", async () => {
+  it("does NOT scroll when user has scrolled up", () => {
     const { getByTestId, rerender } = render(
       createElement(TestComponent, { dep: 0 }),
     );

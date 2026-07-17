@@ -520,10 +520,12 @@ describe("normalizeMessages", () => {
 
       const result = normalizeMessages(messages);
       const first = result.find(
-        (m) => m.role === "tool-call" && m.toolCallId === "call_1",
+        (m): m is ToolCallMessageVM =>
+          m.role === "tool-call" && m.toolCallId === "call_1",
       );
       const second = result.find(
-        (m) => m.role === "tool-call" && m.toolCallId === "call_2",
+        (m): m is ToolCallMessageVM =>
+          m.role === "tool-call" && m.toolCallId === "call_2",
       );
 
       expect(first?.toolResult).toBe('{"ok":true}');
@@ -566,10 +568,12 @@ describe("normalizeMessages", () => {
 
       const result = normalizeMessages(messages);
       const first = result.find(
-        (m) => m.role === "tool-call" && m.toolCallId === "call_1",
+        (m): m is ToolCallMessageVM =>
+          m.role === "tool-call" && m.toolCallId === "call_1",
       );
       const second = result.find(
-        (m) => m.role === "tool-call" && m.toolCallId === "call_2",
+        (m): m is ToolCallMessageVM =>
+          m.role === "tool-call" && m.toolCallId === "call_2",
       );
 
       expect(first?.toolResult).toBe("");

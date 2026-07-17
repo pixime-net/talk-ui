@@ -40,7 +40,9 @@ export function ChatUIProvider({ children }: PropsWithChildren) {
         setError(event.error.message || "An unexpected error occurred");
       },
     });
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+    };
   }, [copilotkit, setError]);
 
   const normalizedMessages = useMemo(
@@ -114,7 +116,9 @@ export function ChatUIProvider({ children }: PropsWithChildren) {
     setThinkingEffortState(effort);
   }, []);
 
-  const clearError = useCallback(() => setError(null), [setError]);
+  const clearError = useCallback(() => {
+    setError(null);
+  }, [setError]);
 
   const value = useMemo<ChatUIContextValue>(
     () => ({

@@ -5,7 +5,9 @@ const envSchema = z.object({
 });
 
 const parsed = envSchema.safeParse({
-  VITE_AGENT_URL: import.meta.env.VITE_AGENT_URL ?? "http://localhost:8090",
+  VITE_AGENT_URL:
+    (import.meta.env.VITE_AGENT_URL as string | undefined) ??
+    "http://localhost:8090",
 });
 
 if (!parsed.success) {

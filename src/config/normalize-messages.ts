@@ -39,7 +39,7 @@ function toToolResultString(value: unknown): string | undefined {
   try {
     return JSON.stringify(value);
   } catch {
-    return String(value);
+    return undefined;
   }
 }
 
@@ -73,12 +73,11 @@ function handleToolCallContainer(
       content: null,
       toolName:
         typeof tc.function.name === "string" ? tc.function.name : "unknown",
-      toolArgs:
-        typeof tc.function.arguments === "string"
-          ? tc.function.arguments
-          : undefined,
-      toolCallId,
-      toolResult: pendingToolResult,
+      ...(typeof tc.function.arguments === "string" && {
+        toolArgs: tc.function.arguments,
+      }),
+      ...(toolCallId !== undefined && { toolCallId }),
+      ...(pendingToolResult !== undefined && { toolResult: pendingToolResult }),
     };
 
     vms.push(vm);
@@ -190,6 +189,13 @@ function handleTextMessage(
   const msgId =
     msg.id !== undefined && msg.id.trim() !== "" ? msg.id : `msg-${index}`;
 
+  if (msg.role === "reasoning") {
+    return {
+      id: msgId,
+      role: "reasoning" as const,
+      content: msg.content,
+    };
+  }
   return {
     id: msgId,
     role: msg.role,
