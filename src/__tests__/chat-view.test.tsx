@@ -9,6 +9,7 @@ import { ChatUIProvider } from "../context/ChatUIContext";
 const mockAgent = {
   messages: [] as Record<string, unknown>[],
   isRunning: false,
+  pendingInterrupts: [] as { id: string; reason: string }[],
   addMessage: vi.fn(),
   agentId: "default",
   threadId: "thread-1",
@@ -51,6 +52,7 @@ describe("ChatView", () => {
   beforeEach(() => {
     mockAgent.messages = [];
     mockAgent.isRunning = false;
+    mockAgent.pendingInterrupts = [];
     mockAgent.addMessage.mockClear();
     mockCopilotKit.runAgent.mockReset();
     mockCopilotKit.runAgent.mockResolvedValue(undefined);
@@ -706,6 +708,52 @@ describe("ChatView", () => {
       expect(toolsToggle).toHaveTextContent("Hide");
       const shownTool = screen.getByText("get_weather");
       expect(shownTool.closest("div[aria-hidden='false']")).not.toBeNull();
+    });
+  });
+
+  describe("interrupt handling", () => {
+    it("renders InterruptBlock for a talk:max_iterations interrupt", () => {
+      mockAgent.messages = [{ id: "1", role: "user", content: "Hello" }];
+      mockAgent.pendingInterrupts = [
+        { id: "intr-1", reason: "talk:max_iterations" },
+      ];
+      render(
+        <Providers>
+          <ChatView />
+        </Providers>,
+      );
+      expect(
+        screen.getByText("The assistant reached its tool call limit."),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Continue" }),
+      ).toBeInTheDocument();
+    });
+
+    it("does not render InterruptBlock when there are no pending interrupts", () => {
+      mockAgent.messages = [{ id: "1", role: "user", content: "Hello" }];
+      render(
+        <Providers>
+          <ChatView />
+        </Providers>,
+      );
+      expect(
+        screen.queryByRole("button", { name: "Continue" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("disables the Continue button while the agent is running", () => {
+      mockAgent.messages = [{ id: "1", role: "user", content: "Hello" }];
+      mockAgent.pendingInterrupts = [
+        { id: "intr-1", reason: "talk:max_iterations" },
+      ];
+      mockAgent.isRunning = true;
+      render(
+        <Providers>
+          <ChatView />
+        </Providers>,
+      );
+      expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
     });
   });
 });

@@ -6,6 +6,7 @@ import { ReasoningBlock } from "./ReasoningBlock";
 import { ToolCallItem } from "./ToolCallItem";
 import { ActivityIndicator } from "./ActivityIndicator";
 import { ErrorBlock } from "./ErrorBlock";
+import { InterruptBlock } from "./InterruptBlock";
 import { useAutoScroll } from "../hooks/use-auto-scroll";
 import { useChatUIContext } from "../context/use-chat-ui-context";
 
@@ -18,7 +19,9 @@ export function ChatView() {
     selectedModel,
     thinkingEffort,
     supportsThinkingForSelectedModel,
+    pendingInterrupt,
     sendMessage,
+    continueFromInterrupt,
     setShowTools,
     setSelectedModel,
     setThinkingEffort,
@@ -109,6 +112,12 @@ export function ChatView() {
                 content={msg.content}
               />
             ),
+          )}
+          {pendingInterrupt !== null && (
+            <InterruptBlock
+              onContinue={continueFromInterrupt}
+              disabled={isRunning}
+            />
           )}
           {isRunning && <ActivityIndicator />}
           {error && <ErrorBlock message={error} />}

@@ -15,6 +15,7 @@ const mockAgent = {
     toolCallId?: string;
   }[],
   isRunning: false,
+  pendingInterrupts: [] as { id: string; reason: string }[],
   addMessage: vi.fn(),
   agentId: "default",
   threadId: "thread-1",
@@ -50,7 +51,9 @@ function TestConsumer() {
     selectedModel,
     thinkingEffort,
     supportsThinkingForSelectedModel,
+    pendingInterrupt,
     sendMessage,
+    continueFromInterrupt,
     setSelectedModel,
     setThinkingEffort,
     error,
@@ -66,6 +69,7 @@ function TestConsumer() {
       <div data-testid="supports-thinking">
         {String(supportsThinkingForSelectedModel)}
       </div>
+      <div data-testid="pending-interrupt">{pendingInterrupt?.id ?? ""}</div>
       <div data-testid="error">{error ?? ""}</div>
       <button
         onClick={() => {
@@ -73,6 +77,13 @@ function TestConsumer() {
         }}
       >
         send
+      </button>
+      <button
+        onClick={() => {
+          continueFromInterrupt();
+        }}
+      >
+        continue
       </button>
       <button
         onClick={() => {
@@ -106,6 +117,7 @@ describe("ChatUIContext", () => {
   beforeEach(() => {
     mockAgent.messages = [];
     mockAgent.isRunning = false;
+    mockAgent.pendingInterrupts = [];
     mockAgent.addMessage.mockReset();
     mockCopilotKit.runAgent.mockReset();
     mockCopilotKit.runAgent.mockResolvedValue(undefined);
@@ -241,5 +253,97 @@ describe("ChatUIContext", () => {
     mockAgent.isRunning = true;
     renderProvider();
     expect(screen.getByTestId("is-running")).toHaveTextContent("true");
+  });
+
+  it("exposes pendingInterrupt for talk:max_iterations interrupt", () => {
+    mockAgent.pendingInterrupts = [
+      { id: "intr-1", reason: "talk:max_iterations" },
+    ];
+    renderProvider();
+    expect(screen.getByTestId("pending-interrupt")).toHaveTextContent("intr-1");
+  });
+
+  it("ignores interrupts with a different reason", () => {
+    mockAgent.pendingInterrupts = [{ id: "intr-2", reason: "other:reason" }];
+    renderProvider();
+    expect(screen.getByTestId("pending-interrupt")).toHaveTextContent("");
+  });
+
+  it("continueFromInterrupt resumes with the interrupt id", async () => {
+    const user = userEvent.setup();
+    mockAgent.pendingInterrupts = [
+      { id: "intr-1", reason: "talk:max_iterations" },
+    ];
+    renderProvider();
+
+    await user.click(screen.getByText("continue"));
+
+    expect(mockCopilotKit.runAgent).toHaveBeenCalledWith({
+      agent: mockAgent,
+      forwardedProps: { model: "sonnet-4.6" },
+      resume: [{ interruptId: "intr-1", status: "resolved" }],
+    });
+  });
+
+  it("continueFromInterrupt resumes every pending interrupt", async () => {
+    const user = userEvent.setup();
+    mockAgent.pendingInterrupts = [
+      { id: "intr-1", reason: "talk:max_iterations" },
+      { id: "intr-2", reason: "talk:max_iterations" },
+    ];
+    renderProvider();
+
+    await user.click(screen.getByText("continue"));
+
+    expect(mockCopilotKit.runAgent).toHaveBeenCalledWith({
+      agent: mockAgent,
+      forwardedProps: { model: "sonnet-4.6" },
+      resume: [
+        { interruptId: "intr-1", status: "resolved" },
+        { interruptId: "intr-2", status: "resolved" },
+      ],
+    });
+  });
+
+  it("continueFromInterrupt resumes interrupts with any reason to satisfy the runtime", async () => {
+    const user = userEvent.setup();
+    mockAgent.pendingInterrupts = [
+      { id: "intr-1", reason: "talk:max_iterations" },
+      { id: "intr-2", reason: "other:reason" },
+    ];
+    renderProvider();
+
+    await user.click(screen.getByText("continue"));
+
+    expect(mockCopilotKit.runAgent).toHaveBeenCalledWith({
+      agent: mockAgent,
+      forwardedProps: { model: "sonnet-4.6" },
+      resume: [
+        { interruptId: "intr-1", status: "resolved" },
+        { interruptId: "intr-2", status: "resolved" },
+      ],
+    });
+  });
+
+  it("continueFromInterrupt is a no-op without a pending interrupt", async () => {
+    const user = userEvent.setup();
+    renderProvider();
+
+    await user.click(screen.getByText("continue"));
+
+    expect(mockCopilotKit.runAgent).not.toHaveBeenCalled();
+  });
+
+  it("continueFromInterrupt is a no-op while the agent is running", async () => {
+    const user = userEvent.setup();
+    mockAgent.pendingInterrupts = [
+      { id: "intr-1", reason: "talk:max_iterations" },
+    ];
+    mockAgent.isRunning = true;
+    renderProvider();
+
+    await user.click(screen.getByText("continue"));
+
+    expect(mockCopilotKit.runAgent).not.toHaveBeenCalled();
   });
 });

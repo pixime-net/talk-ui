@@ -6,6 +6,7 @@ vi.mock("@copilotkit/react-core/v2", () => ({
     agent: {
       messages: [],
       isRunning: false,
+      pendingInterrupts: [],
       addMessage: vi.fn(),
     },
   }),

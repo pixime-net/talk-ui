@@ -5,7 +5,11 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
-import { useAgent, useCopilotKit } from "@copilotkit/react-core/v2";
+import {
+  useAgent,
+  useCopilotKit,
+  type Interrupt,
+} from "@copilotkit/react-core/v2";
 import { useAgentError } from "../config/error-context";
 import {
   normalizeMessages,
@@ -21,7 +25,7 @@ import {
   type ThinkingEffort,
 } from "../config/models";
 
-export function ChatUIProvider({ children }: PropsWithChildren) {
+export function ChatUIProvider({ children }: Readonly<PropsWithChildren>) {
   const { agent } = useAgent();
   const { copilotkit } = useCopilotKit();
   const { error, setError } = useAgentError();
@@ -33,6 +37,20 @@ export function ChatUIProvider({ children }: PropsWithChildren) {
   );
   const [optimisticUserMessage, setOptimisticUserMessage] =
     useState<ChatMessageViewModel | null>(null);
+
+  // The AG-UI client rejects a resume that does not cover every open interrupt,
+  // so the resume payload must address all of them, not only the ones we render.
+  const pendingInterrupts = useMemo<Interrupt[]>(
+    () => agent.pendingInterrupts,
+    [agent.pendingInterrupts],
+  );
+
+  const pendingInterrupt = useMemo<Interrupt | null>(() => {
+    const maxIterInterrupt = pendingInterrupts.find(
+      (interrupt) => interrupt.reason === "talk:max_iterations",
+    );
+    return maxIterInterrupt ?? null;
+  }, [pendingInterrupts]);
 
   useEffect(() => {
     const { unsubscribe } = copilotkit.subscribe({
@@ -91,12 +109,12 @@ export function ChatUIProvider({ children }: PropsWithChildren) {
         forwardedProps.thinkingEffort = thinkingEffort;
       }
 
-      void copilotkit
+      copilotkit
         .runAgent({ agent, forwardedProps })
-        .catch((caught: unknown) => {
+        .catch((error_: unknown) => {
           const fallback = "An unexpected error occurred";
-          if (caught instanceof Error && caught.message.trim() !== "") {
-            setError(caught.message);
+          if (error_ instanceof Error && error_.message.trim() !== "") {
+            setError(error_.message);
             return;
           }
           setError(fallback);
@@ -104,6 +122,44 @@ export function ChatUIProvider({ children }: PropsWithChildren) {
     },
     [agent, copilotkit, selectedModel, setError, thinkingEffort],
   );
+
+  const continueFromInterrupt = useCallback(() => {
+    if (pendingInterrupts.length === 0 || agent.isRunning) return;
+
+    setError(null);
+
+    const forwardedProps: Record<string, string> = { model: selectedModel };
+    if (thinkingEffort !== "off" && supportsThinking(selectedModel)) {
+      forwardedProps.thinkingEffort = thinkingEffort;
+    }
+
+    const resume = pendingInterrupts.map((interrupt) => ({
+      interruptId: interrupt.id,
+      status: "resolved" as const,
+    }));
+
+    copilotkit
+      .runAgent({
+        agent,
+        forwardedProps,
+        resume,
+      })
+      .catch((error_: unknown) => {
+        const fallback = "An unexpected error occurred";
+        if (error_ instanceof Error && error_.message.trim() !== "") {
+          setError(error_.message);
+          return;
+        }
+        setError(fallback);
+      });
+  }, [
+    agent,
+    copilotkit,
+    pendingInterrupts,
+    selectedModel,
+    setError,
+    thinkingEffort,
+  ]);
 
   const setSelectedModel = useCallback((model: ModelAlias) => {
     setSelectedModelState(model);
@@ -129,7 +185,9 @@ export function ChatUIProvider({ children }: PropsWithChildren) {
       selectedModel,
       thinkingEffort,
       supportsThinkingForSelectedModel: supportsThinking(selectedModel),
+      pendingInterrupt,
       sendMessage,
+      continueFromInterrupt,
       setShowTools,
       setSelectedModel,
       setThinkingEffort,
@@ -138,7 +196,9 @@ export function ChatUIProvider({ children }: PropsWithChildren) {
     [
       agent.isRunning,
       clearError,
+      continueFromInterrupt,
       error,
+      pendingInterrupt,
       selectedModel,
       sendMessage,
       setSelectedModel,
