@@ -197,6 +197,44 @@ describe("ChatUIContext", () => {
     });
   });
 
+  it("cancels pending interrupts when sending a new message", async () => {
+    const user = userEvent.setup();
+    mockAgent.pendingInterrupts = [
+      { id: "intr-1", reason: "talk:max_iterations" },
+      { id: "intr-2", reason: "other:reason" },
+    ];
+    renderProvider();
+
+    await user.click(screen.getByText("send"));
+
+    expect(mockCopilotKit.runAgent).toHaveBeenCalledWith({
+      agent: mockAgent,
+      forwardedProps: { model: "sonnet-4.6" },
+      resume: [
+        { interruptId: "intr-1", status: "cancelled" },
+        { interruptId: "intr-2", status: "cancelled" },
+      ],
+    });
+  });
+
+  it("renders a cancellation notice when a new message abandons an interrupt", async () => {
+    const user = userEvent.setup();
+    mockAgent.pendingInterrupts = [
+      { id: "intr-1", reason: "talk:max_iterations" },
+    ];
+    renderProvider();
+
+    await user.click(screen.getByText("send"));
+
+    const messages = JSON.parse(
+      screen.getByTestId("messages-json").textContent || "[]",
+    ) as Array<{ role: string; content: unknown }>;
+
+    const notice = messages.find((msg) => msg.role === "notice");
+    expect(notice).toBeDefined();
+    expect(notice?.content).toBe("Request cancelled by user");
+  });
+
   it("shows user message optimistically before agent messages update", async () => {
     const user = userEvent.setup();
     renderProvider();

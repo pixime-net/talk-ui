@@ -29,8 +29,14 @@ export type ToolCallMessageVM = {
   toolCallId?: string;
 };
 
+export type NoticeMessageVM = {
+  id: string;
+  role: "notice";
+  content: string;
+};
+
 export type ChatMessageViewModel =
-  ContentMessageVM | ReasoningMessageVM | ToolCallMessageVM;
+  ContentMessageVM | ReasoningMessageVM | ToolCallMessageVM | NoticeMessageVM;
 
 function toToolResultString(value: unknown): string | undefined {
   if (value === undefined || value === null) return undefined;

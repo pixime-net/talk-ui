@@ -86,7 +86,13 @@ export function ChatView() {
       >
         <div className="mx-auto flex max-w-2xl flex-col gap-3">
           {visibleMessages.map((msg) =>
-            msg.role === "reasoning" ? (
+            msg.role === "notice" ? (
+              <div key={msg.id} className="flex justify-center py-1">
+                <span className="text-[11px] italic text-muted">
+                  {msg.content}
+                </span>
+              </div>
+            ) : msg.role === "reasoning" ? (
               <ReasoningBlock key={msg.id} content={msg.content} />
             ) : msg.role === "tool-call" ? (
               <div

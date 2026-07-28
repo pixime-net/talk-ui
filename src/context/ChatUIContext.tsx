@@ -37,6 +37,11 @@ export function ChatUIProvider({ children }: Readonly<PropsWithChildren>) {
   );
   const [optimisticUserMessage, setOptimisticUserMessage] =
     useState<ChatMessageViewModel | null>(null);
+  // IDs of user messages that were sent while an interrupt was still pending.
+  // A "Request cancelled by user" notice is rendered just before each of them.
+  const [cancelledNoticeIds, setCancelledNoticeIds] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   // The AG-UI client rejects a resume that does not cover every open interrupt,
   // so the resume payload must address all of them, not only the ones we render.
@@ -83,6 +88,25 @@ export function ChatUIProvider({ children }: Readonly<PropsWithChildren>) {
     return [...normalizedMessages, optimisticUserMessage];
   }, [normalizedMessages, optimisticUserMessage]);
 
+  const messagesWithNotices = useMemo(() => {
+    if (cancelledNoticeIds.size === 0) {
+      return visibleMessages;
+    }
+
+    const result: ChatMessageViewModel[] = [];
+    for (const msg of visibleMessages) {
+      if (cancelledNoticeIds.has(msg.id)) {
+        result.push({
+          id: `cancelled-notice-${msg.id}`,
+          role: "notice",
+          content: "Request cancelled by user",
+        });
+      }
+      result.push(msg);
+    }
+    return result;
+  }, [visibleMessages, cancelledNoticeIds]);
+
   const sendMessage = useCallback(
     (content: string) => {
       if (agent.isRunning) return;
@@ -109,8 +133,31 @@ export function ChatUIProvider({ children }: Readonly<PropsWithChildren>) {
         forwardedProps.thinkingEffort = thinkingEffort;
       }
 
+      // Sending a new message while interrupts are still open means the user is
+      // abandoning the interrupted turn. The AG-UI client rejects a run that
+      // leaves any open interrupt unaddressed, so cancel every pending one.
+      const resume =
+        pendingInterrupts.length > 0
+          ? pendingInterrupts.map((interrupt) => ({
+              interruptId: interrupt.id,
+              status: "cancelled" as const,
+            }))
+          : undefined;
+
+      if (resume !== undefined) {
+        setCancelledNoticeIds((prev) => {
+          const next = new Set(prev);
+          next.add(messageId);
+          return next;
+        });
+      }
+
       copilotkit
-        .runAgent({ agent, forwardedProps })
+        .runAgent(
+          resume === undefined
+            ? { agent, forwardedProps }
+            : { agent, forwardedProps, resume },
+        )
         .catch((error_: unknown) => {
           const fallback = "An unexpected error occurred";
           if (error_ instanceof Error && error_.message.trim() !== "") {
@@ -120,7 +167,14 @@ export function ChatUIProvider({ children }: Readonly<PropsWithChildren>) {
           setError(fallback);
         });
     },
-    [agent, copilotkit, selectedModel, setError, thinkingEffort],
+    [
+      agent,
+      copilotkit,
+      pendingInterrupts,
+      selectedModel,
+      setError,
+      thinkingEffort,
+    ],
   );
 
   const continueFromInterrupt = useCallback(() => {
@@ -178,7 +232,7 @@ export function ChatUIProvider({ children }: Readonly<PropsWithChildren>) {
 
   const value = useMemo<ChatUIContextValue>(
     () => ({
-      visibleMessages,
+      visibleMessages: messagesWithNotices,
       isRunning: agent.isRunning,
       error,
       showTools,
@@ -205,7 +259,7 @@ export function ChatUIProvider({ children }: Readonly<PropsWithChildren>) {
       setThinkingEffort,
       showTools,
       thinkingEffort,
-      visibleMessages,
+      messagesWithNotices,
     ],
   );
 
