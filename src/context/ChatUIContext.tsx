@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren,
 } from "react";
@@ -45,9 +46,22 @@ export function ChatUIProvider({ children }: Readonly<PropsWithChildren>) {
 
   // The AG-UI client rejects a resume that does not cover every open interrupt,
   // so the resume payload must address all of them, not only the ones we render.
-  const pendingInterrupts = useMemo<Interrupt[]>(
-    () => agent.pendingInterrupts,
-    [agent.pendingInterrupts],
+  const pendingInterrupts = agent.pendingInterrupts;
+
+  // Guards sendMessage/continueFromInterrupt against a second click firing
+  // before agent.isRunning flips to true on the next render.
+  const isSubmittingRef = useRef(false);
+
+  const handleRunAgentError = useCallback(
+    (caught: unknown) => {
+      const fallback = "An unexpected error occurred";
+      if (caught instanceof Error && caught.message.trim() !== "") {
+        setError(caught.message);
+        return;
+      }
+      setError(fallback);
+    },
+    [setError],
   );
 
   const pendingInterrupt = useMemo<Interrupt | null>(() => {
@@ -109,7 +123,7 @@ export function ChatUIProvider({ children }: Readonly<PropsWithChildren>) {
 
   const sendMessage = useCallback(
     (content: string) => {
-      if (agent.isRunning) return;
+      if (agent.isRunning || isSubmittingRef.current) return;
       if (content.trim() === "") return;
 
       setError(null);
@@ -152,24 +166,22 @@ export function ChatUIProvider({ children }: Readonly<PropsWithChildren>) {
         });
       }
 
-      copilotkit
+      isSubmittingRef.current = true;
+      void copilotkit
         .runAgent(
           resume === undefined
             ? { agent, forwardedProps }
             : { agent, forwardedProps, resume },
         )
-        .catch((error_: unknown) => {
-          const fallback = "An unexpected error occurred";
-          if (error_ instanceof Error && error_.message.trim() !== "") {
-            setError(error_.message);
-            return;
-          }
-          setError(fallback);
+        .catch(handleRunAgentError)
+        .finally(() => {
+          isSubmittingRef.current = false;
         });
     },
     [
       agent,
       copilotkit,
+      handleRunAgentError,
       pendingInterrupts,
       selectedModel,
       setError,
@@ -178,7 +190,12 @@ export function ChatUIProvider({ children }: Readonly<PropsWithChildren>) {
   );
 
   const continueFromInterrupt = useCallback(() => {
-    if (pendingInterrupts.length === 0 || agent.isRunning) return;
+    if (
+      pendingInterrupts.length === 0 ||
+      agent.isRunning ||
+      isSubmittingRef.current
+    )
+      return;
 
     setError(null);
 
@@ -192,23 +209,21 @@ export function ChatUIProvider({ children }: Readonly<PropsWithChildren>) {
       status: "resolved" as const,
     }));
 
-    copilotkit
+    isSubmittingRef.current = true;
+    void copilotkit
       .runAgent({
         agent,
         forwardedProps,
         resume,
       })
-      .catch((error_: unknown) => {
-        const fallback = "An unexpected error occurred";
-        if (error_ instanceof Error && error_.message.trim() !== "") {
-          setError(error_.message);
-          return;
-        }
-        setError(fallback);
+      .catch(handleRunAgentError)
+      .finally(() => {
+        isSubmittingRef.current = false;
       });
   }, [
     agent,
     copilotkit,
+    handleRunAgentError,
     pendingInterrupts,
     selectedModel,
     setError,

@@ -323,6 +323,23 @@ describe("ChatUIContext", () => {
     });
   });
 
+  it("continueFromInterrupt includes thinkingEffort when enabled", async () => {
+    const user = userEvent.setup();
+    mockAgent.pendingInterrupts = [
+      { id: "intr-1", reason: "talk:max_iterations" },
+    ];
+    renderProvider();
+
+    await user.click(screen.getByText("set-high"));
+    await user.click(screen.getByText("continue"));
+
+    expect(mockCopilotKit.runAgent).toHaveBeenCalledWith({
+      agent: mockAgent,
+      forwardedProps: { model: "sonnet-4.6", thinkingEffort: "high" },
+      resume: [{ interruptId: "intr-1", status: "resolved" }],
+    });
+  });
+
   it("continueFromInterrupt resumes every pending interrupt", async () => {
     const user = userEvent.setup();
     mockAgent.pendingInterrupts = [
