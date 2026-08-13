@@ -8,8 +8,9 @@ Web frontend for the `talk` AI assistant, built on CopilotKit + AG-UI protocol.
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) 22+ (see `.nvmrc`)
-- [pnpm](https://pnpm.io/) 9+
+[![Node.js](https://img.shields.io/badge/Node.js-22+-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![pnpm](https://img.shields.io/badge/pnpm-9+-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 
 ## Getting Started
 
