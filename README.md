@@ -1,8 +1,8 @@
 # talk-ui
 
 [![CI](https://github.com/pixime-net/talk-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/pixime-net/talk-ui/actions/workflows/ci.yml)
-[![Quality gate status](ui)](https://sonarcloud.io/summary/new_code?id=pixime-net_talk-backend)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=pixime-net_talk-backend&metric=coverage)](https://sonarcloud.io/summary/new_code?id=pixime-net_talk-backend)
+[![Quality gate status](ui)](https://sonarcloud.io/summary/new_code?id=pixime-net_talk-ui)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=pixime-net_talk-ui&metric=coverage)](https://sonarcloud.io/summary/new_code?id=pixime-net_talk-ui)
 
 Web frontend for the `talk` AI assistant, built on CopilotKit + AG-UI protocol.
 
