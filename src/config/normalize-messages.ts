@@ -49,60 +49,68 @@ function toToolResultString(value: unknown): string | undefined {
   }
 }
 
+function resolveToolCallId(id: string): string | undefined {
+  return id.trim() !== "" ? id : undefined;
+}
+
+function processToolCall(
+  tc: ToolCallContainer["toolCalls"][number],
+  index: number,
+  toolIndex: number,
+  pendingToolResultsById: Map<string, string>,
+  unresolvedToolCalls: ToolCallMessageVM[],
+): ToolCallMessageVM {
+  const toolCallId = resolveToolCallId(tc.id);
+  const pendingToolResult =
+    toolCallId !== undefined
+      ? pendingToolResultsById.get(toolCallId)
+      : undefined;
+
+  if (toolCallId !== undefined) {
+    pendingToolResultsById.delete(toolCallId);
+  }
+
+  const vm: ToolCallMessageVM = {
+    id:
+      toolCallId !== undefined
+        ? `tool-${toolCallId}`
+        : `tool-msg-${index}-${toolIndex}`,
+    role: "tool-call",
+    content: null,
+    toolName: tc.function.name,
+    toolArgs: tc.function.arguments,
+    ...(toolCallId !== undefined && { toolCallId }),
+    ...(pendingToolResult !== undefined && { toolResult: pendingToolResult }),
+  };
+
+  if (vm.toolResult === undefined) {
+    unresolvedToolCalls.push(vm);
+  }
+
+  return vm;
+}
+
 function handleToolCallContainer(
   msg: ToolCallContainer,
   index: number,
   pendingToolResultsById: Map<string, string>,
   unresolvedToolCalls: ToolCallMessageVM[],
 ): (ToolCallMessageVM | ContentMessageVM)[] {
-  const vms: (ToolCallMessageVM | ContentMessageVM)[] = [];
-
-  for (const [toolIndex, tc] of msg.toolCalls.entries()) {
-    const toolCallId =
-      typeof tc.id === "string" && tc.id.trim() !== "" ? tc.id : undefined;
-    const pendingToolResult =
-      toolCallId !== undefined
-        ? pendingToolResultsById.get(toolCallId)
-        : undefined;
-    if (toolCallId !== undefined) {
-      pendingToolResultsById.delete(toolCallId);
-    }
-
-    const vmId =
-      toolCallId !== undefined
-        ? `tool-${toolCallId}`
-        : `tool-msg-${index}-${toolIndex}`;
-
-    const vm: ToolCallMessageVM = {
-      id: vmId,
-      role: "tool-call",
-      content: null,
-      toolName:
-        typeof tc.function.name === "string" ? tc.function.name : "unknown",
-      ...(typeof tc.function.arguments === "string" && {
-        toolArgs: tc.function.arguments,
-      }),
-      ...(toolCallId !== undefined && { toolCallId }),
-      ...(pendingToolResult !== undefined && { toolResult: pendingToolResult }),
-    };
-
-    vms.push(vm);
-
-    if (vm.toolResult === undefined) {
-      unresolvedToolCalls.push(vm);
-    }
-  }
+  const vms: (ToolCallMessageVM | ContentMessageVM)[] = msg.toolCalls.map(
+    (tc, toolIndex) =>
+      processToolCall(
+        tc,
+        index,
+        toolIndex,
+        pendingToolResultsById,
+        unresolvedToolCalls,
+      ),
+  );
 
   if (msg.content !== undefined) {
     const msgId =
       msg.id !== undefined && msg.id.trim() !== "" ? msg.id : `msg-${index}`;
-
-    const contentVm: ContentMessageVM = {
-      id: msgId,
-      role: "assistant",
-      content: msg.content,
-    };
-    vms.push(contentVm);
+    vms.push({ id: msgId, role: "assistant", content: msg.content });
   }
 
   return vms;

@@ -66,34 +66,28 @@ export function parseAguiMessage(
 
   if (!base.success) return undefined;
 
-  const { role } = base.data;
-
-  if (role === "assistant") {
-    const container = toolCallContainerSchema.safeParse(value);
-    if (container.success) return container.data;
-
-    const text = textMessageSchema.safeParse(value);
-    if (text.success) return text.data;
-    return undefined;
+  switch (base.data.role) {
+    case "assistant": {
+      const container = toolCallContainerSchema.safeParse(value);
+      if (container.success) return container.data;
+      const text = textMessageSchema.safeParse(value);
+      return text.success ? text.data : undefined;
+    }
+    case "tool": {
+      const result = toolResultSchema.safeParse(value);
+      return result.success ? result.data : undefined;
+    }
+    case "user": {
+      const parsed = textMessageSchema.safeParse(value);
+      return parsed.success ? parsed.data : undefined;
+    }
+    case "reasoning": {
+      const parsed = reasoningMessageSchema.safeParse(value);
+      return parsed.success ? parsed.data : undefined;
+    }
+    default:
+      return undefined;
   }
-
-  if (role === "tool") {
-    const result = toolResultSchema.safeParse(value);
-    if (result.success) return result.data;
-    return undefined;
-  }
-
-  if (role === "user") {
-    const parsed = textMessageSchema.safeParse(value);
-    if (parsed.success) return parsed.data;
-  }
-
-  if (role === "reasoning") {
-    const parsed = reasoningMessageSchema.safeParse(value);
-    if (parsed.success) return parsed.data;
-  }
-
-  return undefined;
 }
 
 export function isTextMessage(msg: ParsedAguiMessage): msg is TextMessage {
