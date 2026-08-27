@@ -18,7 +18,7 @@ export function ToolCallItem({
   toolName,
   toolArgs,
   toolResult,
-}: ToolCallItemProps) {
+}: Readonly<ToolCallItemProps>) {
   const [expanded, setExpanded] = useState(false);
   const isInProgress = toolResult === undefined;
   const hasNonEmptyResult =

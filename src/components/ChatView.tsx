@@ -36,6 +36,42 @@ export function ChatView() {
     isRunning,
   ]);
 
+  function renderMessage(msg: (typeof visibleMessages)[number]) {
+    switch (msg.role) {
+      case "notice":
+        return (
+          <div key={msg.id} className="flex justify-center py-1">
+            <span className="text-[11px] italic text-muted">{msg.content}</span>
+          </div>
+        );
+      case "reasoning":
+        return <ReasoningBlock key={msg.id} content={msg.content} />;
+      case "tool-call":
+        return (
+          <div
+            key={msg.id}
+            className={`overflow-hidden transition-all duration-200 ease-out ${
+              showTools
+                ? "max-h-90 overflow-y-auto translate-y-0 opacity-100"
+                : "pointer-events-none max-h-0 -translate-y-1 opacity-0"
+            }`}
+            aria-hidden={!showTools}
+            inert={!showTools}
+          >
+            <ToolCallItem
+              toolName={msg.toolName ?? "unknown"}
+              toolArgs={msg.toolArgs}
+              toolResult={msg.toolResult}
+            />
+          </div>
+        );
+      default:
+        return (
+          <MessageBubble key={msg.id} role={msg.role} content={msg.content} />
+        );
+    }
+  }
+
   const chatBox = (
     <div className="mx-auto w-full max-w-2xl rounded-xl border border-white/20 bg-white/5 px-4 pb-2 pt-3">
       <ChatInput onSend={sendMessage} disabled={isRunning} />
@@ -85,40 +121,7 @@ export function ChatView() {
         className="flex-1 overflow-y-auto p-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20 hover:[&::-webkit-scrollbar-thumb]:bg-white/30"
       >
         <div className="mx-auto flex max-w-2xl flex-col gap-3">
-          {visibleMessages.map((msg) =>
-            msg.role === "notice" ? (
-              <div key={msg.id} className="flex justify-center py-1">
-                <span className="text-[11px] italic text-muted">
-                  {msg.content}
-                </span>
-              </div>
-            ) : msg.role === "reasoning" ? (
-              <ReasoningBlock key={msg.id} content={msg.content} />
-            ) : msg.role === "tool-call" ? (
-              <div
-                key={msg.id}
-                className={`overflow-hidden transition-all duration-200 ease-out ${
-                  showTools
-                    ? "max-h-90 overflow-y-auto translate-y-0 opacity-100"
-                    : "pointer-events-none max-h-0 -translate-y-1 opacity-0"
-                }`}
-                aria-hidden={!showTools}
-                inert={!showTools}
-              >
-                <ToolCallItem
-                  toolName={msg.toolName ?? "unknown"}
-                  toolArgs={msg.toolArgs}
-                  toolResult={msg.toolResult}
-                />
-              </div>
-            ) : (
-              <MessageBubble
-                key={msg.id}
-                role={msg.role}
-                content={msg.content}
-              />
-            ),
-          )}
+          {visibleMessages.map(renderMessage)}
           {pendingInterrupt !== null && (
             <InterruptBlock
               onContinue={continueFromInterrupt}

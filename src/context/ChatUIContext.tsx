@@ -31,9 +31,8 @@ export function ChatUIProvider({ children }: Readonly<PropsWithChildren>) {
   const { copilotkit } = useCopilotKit();
   const { error, setError } = useAgentError();
   const [showTools, setShowTools] = useState(true);
-  const [selectedModel, setSelectedModelState] =
-    useState<ModelAlias>(DEFAULT_MODEL);
-  const [thinkingEffort, setThinkingEffortState] = useState<ThinkingEffort>(
+  const [selectedModel, setSelectedModel] = useState<ModelAlias>(DEFAULT_MODEL);
+  const [thinkingEffort, setThinkingEffort] = useState<ThinkingEffort>(
     DEFAULT_THINKING_EFFORT,
   );
   const [optimisticUserMessage, setOptimisticUserMessage] =
@@ -230,15 +229,15 @@ export function ChatUIProvider({ children }: Readonly<PropsWithChildren>) {
     thinkingEffort,
   ]);
 
-  const setSelectedModel = useCallback((model: ModelAlias) => {
-    setSelectedModelState(model);
+  const setSelectedModelCallback = useCallback((model: ModelAlias) => {
+    setSelectedModel(model);
     if (!supportsThinking(model)) {
-      setThinkingEffortState(DEFAULT_THINKING_EFFORT);
+      setThinkingEffort(DEFAULT_THINKING_EFFORT);
     }
   }, []);
 
-  const setThinkingEffort = useCallback((effort: ThinkingEffort) => {
-    setThinkingEffortState(effort);
+  const setThinkingEffortCallback = useCallback((effort: ThinkingEffort) => {
+    setThinkingEffort(effort);
   }, []);
 
   const clearError = useCallback(() => {
@@ -258,8 +257,8 @@ export function ChatUIProvider({ children }: Readonly<PropsWithChildren>) {
       sendMessage,
       continueFromInterrupt,
       setShowTools,
-      setSelectedModel,
-      setThinkingEffort,
+      setSelectedModel: setSelectedModelCallback,
+      setThinkingEffort: setThinkingEffortCallback,
       clearError,
     }),
     [
@@ -270,8 +269,8 @@ export function ChatUIProvider({ children }: Readonly<PropsWithChildren>) {
       pendingInterrupt,
       selectedModel,
       sendMessage,
-      setSelectedModel,
-      setThinkingEffort,
+      setSelectedModelCallback,
+      setThinkingEffortCallback,
       showTools,
       thinkingEffort,
       messagesWithNotices,

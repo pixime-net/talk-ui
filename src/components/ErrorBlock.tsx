@@ -2,7 +2,7 @@ interface ErrorBlockProps {
   message: string;
 }
 
-export function ErrorBlock({ message }: ErrorBlockProps) {
+export function ErrorBlock({ message }: Readonly<ErrorBlockProps>) {
   return (
     <div className="flex justify-start">
       <div

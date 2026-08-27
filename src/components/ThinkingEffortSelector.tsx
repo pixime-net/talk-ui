@@ -11,7 +11,7 @@ export function ThinkingEffortSelector({
   value,
   onChange,
   disabled = false,
-}: ThinkingEffortSelectorProps) {
+}: Readonly<ThinkingEffortSelectorProps>) {
   const [open, setOpen] = useState(false);
   const [dropUp, setDropUp] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -130,6 +130,13 @@ export function ThinkingEffortSelector({
               onClick={() => {
                 onChange(effort);
                 setOpen(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onChange(effort);
+                  setOpen(false);
+                }
               }}
               className={`cursor-pointer whitespace-nowrap px-3 py-1 text-xs transition-colors ${
                 effort === value

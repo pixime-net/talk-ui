@@ -11,9 +11,8 @@ const parsed = envSchema.safeParse({
 });
 
 if (!parsed.success) {
-  throw new Error(
-    `Environment validation failed:\n${parsed.error.issues.map((i) => `  - ${i.message}`).join("\n")}`,
-  );
+  const issues = parsed.error.issues.map((i) => "  - " + i.message).join("\n");
+  throw new Error(`Environment validation failed:\n${issues}`);
 }
 
 export const config = parsed.data;

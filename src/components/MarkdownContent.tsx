@@ -14,7 +14,7 @@ interface MarkdownContentProps {
   content: string;
 }
 
-export function MarkdownContent({ content }: MarkdownContentProps) {
+export function MarkdownContent({ content }: Readonly<MarkdownContentProps>) {
   if (!content.trim()) return null;
 
   return (

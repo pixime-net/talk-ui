@@ -11,7 +11,7 @@ export function ModelSelector({
   value,
   onChange,
   disabled = false,
-}: ModelSelectorProps) {
+}: Readonly<ModelSelectorProps>) {
   const [open, setOpen] = useState(false);
   const [dropUp, setDropUp] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -130,6 +130,13 @@ export function ModelSelector({
               onClick={() => {
                 onChange(alias);
                 setOpen(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onChange(alias);
+                  setOpen(false);
+                }
               }}
               className={`cursor-pointer whitespace-nowrap px-3 py-1 text-xs transition-colors ${
                 alias === value

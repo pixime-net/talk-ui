@@ -3,7 +3,10 @@ interface InterruptBlockProps {
   disabled: boolean;
 }
 
-export function InterruptBlock({ onContinue, disabled }: InterruptBlockProps) {
+export function InterruptBlock({
+  onContinue,
+  disabled,
+}: Readonly<InterruptBlockProps>) {
   return (
     <div className="flex justify-start">
       <div className="flex max-w-[75%] flex-col gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-amber-300">

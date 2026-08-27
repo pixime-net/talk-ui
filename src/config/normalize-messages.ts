@@ -160,9 +160,7 @@ function finalizeUnresolvedForCompletedAssistantTurn(
   unresolvedToolCalls: ToolCallMessageVM[],
 ) {
   for (const vm of unresolvedToolCalls) {
-    if (vm.toolResult === undefined) {
-      vm.toolResult = "";
-    }
+    vm.toolResult ??= "";
   }
   unresolvedToolCalls.length = 0;
 }

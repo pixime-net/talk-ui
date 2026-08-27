@@ -24,7 +24,7 @@ function getNonTextPlaceholder(content: unknown): string {
   return `${contentType} content is not displayed yet.`;
 }
 
-export function MessageBubble({ role, content }: MessageBubbleProps) {
+export function MessageBubble({ role, content }: Readonly<MessageBubbleProps>) {
   if (role !== "user" && role !== "assistant") return null;
 
   const isUser = role === "user";
