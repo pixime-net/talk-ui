@@ -64,7 +64,17 @@ export function ToolCallItem({
         </span>
       </button>
       {expanded && (
-        <div className="mt-1.5 pl-3 text-[11px] leading-4 text-white/60 font-mono whitespace-pre-wrap">
+        <div
+          className={[
+            "mt-1.5 pl-3 mr-1",
+            "text-[11px] leading-4 text-white/60 font-mono whitespace-pre-wrap",
+            "max-h-60 overflow-y-auto",
+            "[&::-webkit-scrollbar]:w-2.5",
+            "[&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-white/5",
+            "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20",
+            "hover:[&::-webkit-scrollbar-thumb]:bg-white/30",
+          ].join(" ")}
+        >
           {toolArgs && (
             <div>
               <div className="mb-0.5 text-[10px] uppercase tracking-wider text-white/40">
