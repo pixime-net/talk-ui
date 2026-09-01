@@ -29,6 +29,7 @@ export function SplitLayout({
         )}
       </div>
       <div
+        aria-hidden={!mapPanelOpen || undefined}
         className={`min-w-0 overflow-hidden transition-[width] duration-300 ease-in-out ${mapPanelOpen ? "w-1/2 border-l border-white/10" : "w-0"}`}
       >
         {mapPanel}

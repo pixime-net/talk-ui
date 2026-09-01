@@ -56,6 +56,11 @@ const toolResultMsg = {
   content: validRouteOutput,
 };
 
+const toolResultWithoutID = {
+  role: "tool",
+  content: validRouteOutput,
+};
+
 function TestConsumer() {
   const {
     itineraries,
@@ -291,5 +296,40 @@ describe("MapProvider", () => {
     await waitFor(() => {
       expect(screen.getByTestId("selected").textContent).toBe("null");
     });
+  });
+
+  it("matches prefixed tool names", async () => {
+    const prefixedToolCallMsg = {
+      role: "assistant",
+      toolCalls: [
+        {
+          id: "tc-2",
+          type: "function",
+          function: { name: "mcp_ign-nav-mcp_route", arguments: "" },
+        },
+      ],
+    };
+    const prefixedToolResultMsg = {
+      role: "tool",
+      toolCallId: "tc-2",
+      content: validRouteOutput,
+    };
+
+    mockAgent.messages = [prefixedToolCallMsg, prefixedToolResultMsg];
+    renderProvider();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("count").textContent).toBe("1");
+    });
+  });
+
+  it("pairs tool results without toolCallId using message order", async () => {
+    mockAgent.messages = [toolCallMsg, toolResultWithoutID];
+    renderProvider();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("count").textContent).toBe("1");
+    });
+    expect(screen.getByTestId("ids").textContent).toBe("tool-result-1-0");
   });
 });

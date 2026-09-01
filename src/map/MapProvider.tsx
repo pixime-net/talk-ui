@@ -7,41 +7,97 @@ import {
   type ReactNode,
 } from "react";
 import { useAgent } from "@copilotkit/react-core/v2";
-import { parseAguiMessage } from "../config/agui-schemas";
+import {
+  parseAguiMessage,
+  type ToolCallContainer,
+  type ToolResult,
+} from "../config/agui-schemas";
 import { MapContext } from "./map-context";
 import type { MapContextValue, MapFeature, ToolResultMapper } from "./types";
 
-function indexToolCallNames(messages: unknown[]): Map<string, string> {
-  const index = new Map<string, string>();
-  for (const msg of messages) {
-    const parsed = parseAguiMessage(msg);
-    if (parsed?.kind !== "tool-call-container") continue;
-    for (const tc of parsed.toolCalls) {
-      if (tc.id) index.set(tc.id, tc.function.name);
-    }
+interface PendingToolCall {
+  id?: string;
+  name: string;
+}
+
+function registerPendingToolCalls(
+  parsed: ToolCallContainer,
+  pendingCalls: PendingToolCall[],
+): void {
+  for (const tc of parsed.toolCalls) {
+    pendingCalls.push({
+      ...(tc.id ? { id: tc.id } : {}),
+      name: tc.function.name,
+    });
   }
-  return index;
+}
+
+function takeMatchingPendingCall(
+  pendingCalls: PendingToolCall[],
+  toolCallId: string | undefined,
+): PendingToolCall | undefined {
+  const idx =
+    toolCallId !== undefined
+      ? pendingCalls.findIndex((c) => c.id === toolCallId)
+      : 0;
+  if (idx < 0 || idx >= pendingCalls.length) return undefined;
+  return pendingCalls.splice(idx, 1)[0];
+}
+
+function findMapperForTool(
+  toolName: string,
+  mappers: ToolResultMapper[],
+): ToolResultMapper | undefined {
+  const normalizedName = toolName.toLowerCase();
+  return mappers.find((m) => {
+    const expected = m.toolName.toLowerCase();
+    return (
+      normalizedName === expected || normalizedName.endsWith(`_${expected}`)
+    );
+  });
+}
+
+function featuresFromToolResult(
+  parsed: ToolResult,
+  resultSeq: number,
+  pendingCalls: PendingToolCall[],
+  mappers: ToolResultMapper[],
+): MapFeature[] {
+  const { toolCallId, content } = parsed;
+  const toolName = takeMatchingPendingCall(pendingCalls, toolCallId)?.name;
+  if (!toolName) return [];
+
+  const mapper = findMapperForTool(toolName, mappers);
+  if (!mapper) return [];
+
+  const featurePrefix = toolCallId ?? `tool-result-${resultSeq}`;
+  return mapper
+    .toMapFeatures(content)
+    .map((f, idx) => ({ ...f, id: `${featurePrefix}-${idx}` }));
 }
 
 function extractFeatures(
   messages: unknown[],
-  toolCallNames: Map<string, string>,
   mappers: ToolResultMapper[],
 ): MapFeature[] {
   const features: MapFeature[] = [];
+  const pendingCalls: PendingToolCall[] = [];
+  let resultSeq = 0;
+
   for (const msg of messages) {
     const parsed = parseAguiMessage(msg);
-    if (parsed?.kind !== "tool-result") continue;
-    const { toolCallId, content } = parsed;
-    if (!toolCallId) continue;
-    const toolName = toolCallNames.get(toolCallId);
-    if (!toolName) continue;
-    const mapper = mappers.find((m) => m.toolName === toolName);
-    if (!mapper) continue;
+    if (!parsed) continue;
+
+    if (parsed.kind === "tool-call-container") {
+      registerPendingToolCalls(parsed, pendingCalls);
+      continue;
+    }
+
+    if (parsed.kind !== "tool-result") continue;
+
+    resultSeq++;
     features.push(
-      ...mapper
-        .toMapFeatures(content)
-        .map((f, idx) => ({ ...f, id: `${toolCallId}-${idx}` })),
+      ...featuresFromToolResult(parsed, resultSeq, pendingCalls, mappers),
     );
   }
   return features;
@@ -60,8 +116,7 @@ export function MapProvider({ mappers, children }: Readonly<MapProviderProps>) {
   );
 
   const itineraries = useMemo<MapFeature[]>(() => {
-    const toolCallNames = indexToolCallNames(agent.messages);
-    return extractFeatures(agent.messages, toolCallNames, mappers);
+    return extractFeatures(agent.messages, mappers);
   }, [agent.messages, mappers]);
 
   useEffect(() => {

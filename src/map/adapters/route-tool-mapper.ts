@@ -3,18 +3,18 @@ import type { Geometry } from "geojson";
 import type { MapFeature, ToolResultMapper } from "../types";
 
 const routeToolOutputSchema = z.object({
-  start: z.string(),
-  end: z.string(),
-  profile: z.string(),
-  optimization: z.string(),
-  distance: z.number(),
-  duration: z.number(),
+  start: z.string().optional(),
+  end: z.string().optional(),
+  profile: z.string().optional(),
+  optimization: z.string().optional(),
+  distance: z.number().optional(),
+  duration: z.number().optional(),
   bbox: z.tuple([z.number(), z.number(), z.number(), z.number()]),
   geometry: z.object({
-    type: z.string(),
+    type: z.string().optional(),
     coordinates: z.array(z.array(z.number())),
   }),
-  portions: z.array(z.unknown()),
+  portions: z.array(z.unknown()).optional(),
   startLabel: z.string().optional(),
   endLabel: z.string().optional(),
 });
@@ -33,22 +33,28 @@ function toMapFeatures(toolResult: unknown): MapFeature[] {
   if (!result.success) return [];
 
   const data = result.data;
-  const from = data.startLabel ?? data.start;
-  const to = data.endLabel ?? data.end;
-  const label = `${from} → ${to} (${data.profile}, ${data.optimization})`;
+  const from = data.startLabel ?? data.start ?? "origin";
+  const to = data.endLabel ?? data.end ?? "destination";
+  const profile = data.profile ?? "car";
+  const optimization = data.optimization ?? "fastest";
+  const geometryType = data.geometry.type?.trim() || "LineString";
+  const label = `${from} → ${to} (${profile}, ${optimization})`;
 
   return [
     {
       id: "", // MapProvider overrides this with toolCallId
       label,
-      geometry: data.geometry as unknown as Geometry,
+      geometry: {
+        type: geometryType,
+        coordinates: data.geometry.coordinates,
+      } as unknown as Geometry,
       bbox: data.bbox,
       properties: {
-        distance: data.distance,
-        duration: data.duration,
-        profile: data.profile,
-        optimization: data.optimization,
-        portions: data.portions,
+        ...(data.distance !== undefined && { distance: data.distance }),
+        ...(data.duration !== undefined && { duration: data.duration }),
+        profile,
+        optimization,
+        portions: data.portions ?? [],
       },
     },
   ];

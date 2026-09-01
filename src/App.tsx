@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { ChatView } from "./components/ChatView";
 import { ChatUIProvider } from "./context/ChatUIContext";
 import { SplitLayout } from "./components/SplitLayout";
@@ -8,6 +9,10 @@ import type { ToolResultMapper } from "./map/types";
 
 const MAP_MAPPERS: ToolResultMapper[] = [routeToolMapper];
 
+const LazyMapPanel = lazy(() =>
+  import("./map/MapPanel").then((m) => ({ default: m.MapPanel })),
+);
+
 function AppLayout() {
   const { isMapPanelOpen, toggleMapPanel } = useMapContext();
   return (
@@ -16,9 +21,15 @@ function AppLayout() {
         mapPanelOpen={isMapPanelOpen}
         onToggleMap={toggleMapPanel}
         mapPanel={
-          <div className="flex h-full items-center justify-center text-sm text-muted">
-            Map — story 9.2
-          </div>
+          <Suspense
+            fallback={
+              <div className="flex h-full items-center justify-center text-sm text-muted">
+                Chargement…
+              </div>
+            }
+          >
+            <LazyMapPanel />
+          </Suspense>
         }
       >
         <ChatView />
