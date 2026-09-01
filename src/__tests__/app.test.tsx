@@ -26,4 +26,8 @@ describe("App", () => {
     render(<App />);
     expect(screen.getByLabelText("Message")).toBeInTheDocument();
   });
+
+  it("renders without throwing", () => {
+    expect(() => render(<App />)).not.toThrow();
+  });
 });
