@@ -11,6 +11,42 @@ import { parseAguiMessage } from "../config/agui-schemas";
 import { MapContext } from "./map-context";
 import type { MapContextValue, MapFeature, ToolResultMapper } from "./types";
 
+function indexToolCallNames(messages: unknown[]): Map<string, string> {
+  const index = new Map<string, string>();
+  for (const msg of messages) {
+    const parsed = parseAguiMessage(msg);
+    if (parsed?.kind !== "tool-call-container") continue;
+    for (const tc of parsed.toolCalls) {
+      if (tc.id) index.set(tc.id, tc.function.name);
+    }
+  }
+  return index;
+}
+
+function extractFeatures(
+  messages: unknown[],
+  toolCallNames: Map<string, string>,
+  mappers: ToolResultMapper[],
+): MapFeature[] {
+  const features: MapFeature[] = [];
+  for (const msg of messages) {
+    const parsed = parseAguiMessage(msg);
+    if (parsed?.kind !== "tool-result") continue;
+    const { toolCallId, content } = parsed;
+    if (!toolCallId) continue;
+    const toolName = toolCallNames.get(toolCallId);
+    if (!toolName) continue;
+    const mapper = mappers.find((m) => m.toolName === toolName);
+    if (!mapper) continue;
+    features.push(
+      ...mapper
+        .toMapFeatures(content)
+        .map((f, idx) => ({ ...f, id: `${toolCallId}-${idx}` })),
+    );
+  }
+  return features;
+}
+
 interface MapProviderProps {
   mappers: ToolResultMapper[];
   children: ReactNode;
@@ -24,34 +60,8 @@ export function MapProvider({ mappers, children }: Readonly<MapProviderProps>) {
   );
 
   const itineraries = useMemo<MapFeature[]>(() => {
-    const toolCallNames = new Map<string, string>();
-    for (const msg of agent.messages) {
-      const parsed = parseAguiMessage(msg);
-      if (parsed?.kind !== "tool-call-container") continue;
-      for (const tc of parsed.toolCalls) {
-        if (tc.id) toolCallNames.set(tc.id, tc.function.name);
-      }
-    }
-
-    const features: MapFeature[] = [];
-    for (const msg of agent.messages) {
-      const parsed = parseAguiMessage(msg);
-      if (parsed?.kind !== "tool-result") continue;
-      const toolCallId = parsed.toolCallId;
-      if (!toolCallId) continue;
-      const toolName = toolCallNames.get(toolCallId);
-      if (!toolName) continue;
-      const mapper = mappers.find((m) => m.toolName === toolName);
-      if (!mapper) continue;
-      const extracted = mapper.toMapFeatures(parsed.content);
-      features.push(
-        ...extracted.map((f, idx) => ({
-          ...f,
-          id: `${toolCallId}-${idx}`,
-        })),
-      );
-    }
-    return features;
+    const toolCallNames = indexToolCallNames(agent.messages);
+    return extractFeatures(agent.messages, toolCallNames, mappers);
   }, [agent.messages, mappers]);
 
   useEffect(() => {

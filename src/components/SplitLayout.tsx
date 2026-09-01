@@ -12,7 +12,7 @@ export function SplitLayout({
   mapPanel,
   onToggleMap,
   children,
-}: SplitLayoutProps) {
+}: Readonly<SplitLayoutProps>) {
   return (
     <div className="flex h-screen w-full overflow-hidden">
       <div className="relative flex-1 min-w-0 overflow-hidden">
