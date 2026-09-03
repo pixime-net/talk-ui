@@ -305,7 +305,7 @@ describe("MapProvider", () => {
         {
           id: "tc-2",
           type: "function",
-          function: { name: "mcp_ign-nav-mcp_route", arguments: "" },
+          function: { name: "ign-nav__route", arguments: "" },
         },
       ],
     };

@@ -20,6 +20,15 @@ interface PendingToolCall {
   name: string;
 }
 
+/** Separator used by the backend to namespace a tool with its MCP server name. */
+const SERVER_PREFIX_SEPARATOR = "__";
+
+function stripServerPrefix(toolName: string): string {
+  const idx = toolName.indexOf(SERVER_PREFIX_SEPARATOR);
+  if (idx === -1) return toolName;
+  return toolName.slice(idx + SERVER_PREFIX_SEPARATOR.length);
+}
+
 function registerPendingToolCalls(
   parsed: ToolCallContainer,
   pendingCalls: PendingToolCall[],
@@ -48,13 +57,8 @@ function findMapperForTool(
   toolName: string,
   mappers: ToolResultMapper[],
 ): ToolResultMapper | undefined {
-  const normalizedName = toolName.toLowerCase();
-  return mappers.find((m) => {
-    const expected = m.toolName.toLowerCase();
-    return (
-      normalizedName === expected || normalizedName.endsWith(`_${expected}`)
-    );
-  });
+  const normalizedName = stripServerPrefix(toolName).toLowerCase();
+  return mappers.find((m) => normalizedName === m.toolName.toLowerCase());
 }
 
 function featuresFromToolResult(
