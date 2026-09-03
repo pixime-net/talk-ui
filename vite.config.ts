@@ -14,6 +14,8 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: ["./src/test-setup.ts"],
+    // jsdom env setup + cold dynamic imports can exceed the 5s default under parallel load
+    testTimeout: 20000,
     coverage: {
       reporter: ["lcov", "text"],
       reportsDirectory: "coverage",

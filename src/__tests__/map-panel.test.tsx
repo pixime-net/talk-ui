@@ -169,7 +169,7 @@ describe("MapPanel", () => {
     expect(screen.getByTestId("source-route-tc-2-0")).toBeInTheDocument();
   });
 
-  it("renders selected feature at full opacity and unselected at 40%", () => {
+  it("renders selected feature at full opacity and unselected at 80%", () => {
     const f1 = makeFeature({ id: "tc-1-0" });
     const f2 = makeFeature({ id: "tc-2-0" });
     render(
@@ -193,9 +193,9 @@ describe("MapPanel", () => {
       "line-width": number;
     };
     expect(paint1["line-opacity"]).toBe(1);
-    expect(paint1["line-width"]).toBe(5);
-    expect(paint2["line-opacity"]).toBe(0.4);
-    expect(paint2["line-width"]).toBe(3);
+    expect(paint1["line-width"]).toBe(12);
+    expect(paint2["line-opacity"]).toBe(0.8);
+    expect(paint2["line-width"]).toBe(8);
   });
 
   it("renders start and end markers for a LineString with no intermediate portions", () => {
