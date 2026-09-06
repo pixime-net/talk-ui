@@ -13,11 +13,11 @@ describe("models config", () => {
     expect(MODEL_ALIASES).toEqual([
       "haiku-4.5",
       "sonnet-4.6",
+      "sonnet-5",
       "opus-4.6",
       "o4-mini",
       "gpt-5.4",
       "mistral-small",
-      "agent",
     ]);
   });
 
@@ -42,6 +42,7 @@ describe("thinking effort", () => {
   it("identifies thinking-capable models", () => {
     expect(supportsThinking("haiku-4.5")).toBe(true);
     expect(supportsThinking("sonnet-4.6")).toBe(true);
+    expect(supportsThinking("sonnet-5")).toBe(true);
     expect(supportsThinking("opus-4.6")).toBe(true);
     expect(supportsThinking("o4-mini")).toBe(true);
   });
@@ -49,6 +50,5 @@ describe("thinking effort", () => {
   it("identifies non-thinking models", () => {
     expect(supportsThinking("gpt-5.4")).toBe(false);
     expect(supportsThinking("mistral-small")).toBe(false);
-    expect(supportsThinking("agent")).toBe(false);
   });
 });

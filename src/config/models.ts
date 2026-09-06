@@ -3,11 +3,11 @@ import { z } from "zod/v4";
 export const MODEL_ALIASES = [
   "haiku-4.5",
   "sonnet-4.6",
+  "sonnet-5",
   "opus-4.6",
   "o4-mini",
   "gpt-5.4",
   "mistral-small",
-  "agent",
 ] as const;
 
 export const modelAliasSchema = z.enum(MODEL_ALIASES);
@@ -37,6 +37,7 @@ export const DEFAULT_THINKING_EFFORT: ThinkingEffort = "off";
 const THINKING_MODELS: ReadonlySet<ModelAlias> = new Set([
   "haiku-4.5",
   "sonnet-4.6",
+  "sonnet-5",
   "opus-4.6",
   "o4-mini",
 ]);
