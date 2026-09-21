@@ -1,10 +1,17 @@
 import { render, screen } from "@testing-library/react";
+import { act } from "react";
 import userEvent from "@testing-library/user-event";
 import { useState, type PropsWithChildren } from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { AgentErrorContext } from "../config/error-context";
 import { DEFAULT_MODEL } from "../config/models";
 import { ChatUIProvider } from "../context/ChatUIContext";
+
+interface MockSubscriber {
+  onCustomEvent?: (params: { event: { name: string; value: unknown } }) => void;
+}
+
+const mockSubscribers: MockSubscriber[] = [];
 
 const mockAgent = {
   messages: [] as Record<string, unknown>[],
@@ -15,7 +22,10 @@ const mockAgent = {
   threadId: "thread-1",
   state: {},
   setState: vi.fn(),
-  subscribe: vi.fn(() => ({ unsubscribe: vi.fn() })),
+  subscribe: vi.fn((subscriber: MockSubscriber) => {
+    mockSubscribers.push(subscriber);
+    return { unsubscribe: vi.fn() };
+  }),
 };
 
 const mockCopilotKit = {
@@ -755,5 +765,76 @@ describe("ChatView", () => {
       );
       expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
     });
+  });
+});
+
+describe("ChatView token usage indicator", () => {
+  beforeEach(() => {
+    mockAgent.messages = [];
+    mockAgent.isRunning = false;
+    mockAgent.pendingInterrupts = [];
+    mockAgent.subscribe.mockClear();
+    mockSubscribers.length = 0;
+    mockCopilotKit.subscribe.mockClear();
+    Element.prototype.scrollIntoView = vi.fn();
+  });
+
+  function emitCustomEvent(name: string, value: unknown) {
+    act(() => {
+      for (const subscriber of mockSubscribers) {
+        subscriber.onCustomEvent?.({ event: { name, value } });
+      }
+    });
+  }
+
+  it("is absent until a valid usage event arrives", () => {
+    render(
+      <Providers>
+        <ChatView />
+      </Providers>,
+    );
+    expect(
+      screen.queryByTestId("token-usage-indicator"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders next to the model selector once usage is confirmed", () => {
+    render(
+      <Providers>
+        <ChatView />
+      </Providers>,
+    );
+
+    emitCustomEvent("token_usage", {
+      input_tokens: 140000,
+      context_window_tokens: 200000,
+      context_ratio: 0.7,
+    });
+    emitCustomEvent("turn_usage", { input_tokens: 140000 });
+
+    const indicator = screen.getByTestId("token-usage-indicator");
+    const modelSelector = screen.getByLabelText("Modèle");
+    expect(indicator).toBeInTheDocument();
+    expect(indicator.parentElement).toContainElement(modelSelector);
+    expect(screen.getByTestId("context-usage")).toHaveAttribute(
+      "data-status",
+      "warning",
+    );
+  });
+
+  it("keeps the model, thinking and tools controls working", async () => {
+    const user = userEvent.setup();
+    render(
+      <Providers>
+        <ChatView />
+      </Providers>,
+    );
+
+    emitCustomEvent("token_usage", { input_tokens: 10 });
+
+    expect(screen.getByLabelText("Modèle")).toHaveTextContent(DEFAULT_MODEL);
+    const toolsButton = screen.getByRole("button", { name: "Tools" });
+    await user.click(toolsButton);
+    expect(toolsButton).toHaveTextContent("Show");
   });
 });

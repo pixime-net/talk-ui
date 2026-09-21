@@ -1,10 +1,22 @@
 import { render, screen } from "@testing-library/react";
+import { act } from "react";
 import userEvent from "@testing-library/user-event";
 import { useState, type PropsWithChildren } from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { AgentErrorContext } from "../config/error-context";
 import { ChatUIProvider } from "../context/ChatUIContext";
 import { useChatUIContext } from "../context/use-chat-ui-context";
+
+interface CustomEventParams {
+  event: { name: string; value: unknown } | null | undefined;
+}
+
+interface MockSubscriber {
+  onCustomEvent?: (params: CustomEventParams) => void;
+}
+
+const subscribers: MockSubscriber[] = [];
+const unsubscribeSpy = vi.fn();
 
 const mockAgent = {
   messages: [] as {
@@ -21,8 +33,27 @@ const mockAgent = {
   threadId: "thread-1",
   state: {},
   setState: vi.fn(),
-  subscribe: vi.fn(() => ({ unsubscribe: vi.fn() })),
+  subscribe: vi.fn((subscriber: MockSubscriber) => {
+    subscribers.push(subscriber);
+    return { unsubscribe: unsubscribeSpy };
+  }),
 };
+
+function emitCustomEvent(name: string, value: unknown) {
+  act(() => {
+    for (const subscriber of subscribers) {
+      subscriber.onCustomEvent?.({ event: { name, value } });
+    }
+  });
+}
+
+function emitRawCustomEvent(event: CustomEventParams["event"]) {
+  act(() => {
+    for (const subscriber of subscribers) {
+      subscriber.onCustomEvent?.({ event });
+    }
+  });
+}
 
 const mockCopilotKit = {
   runAgent: vi.fn(),
@@ -52,6 +83,8 @@ function TestConsumer() {
     thinkingEffort,
     supportsThinkingForSelectedModel,
     pendingInterrupt,
+    lastCallUsage,
+    cumulativeUsage,
     sendMessage,
     continueFromInterrupt,
     setSelectedModel,
@@ -70,6 +103,10 @@ function TestConsumer() {
         {String(supportsThinkingForSelectedModel)}
       </div>
       <div data-testid="pending-interrupt">{pendingInterrupt?.id ?? ""}</div>
+      <div data-testid="last-call-usage">{JSON.stringify(lastCallUsage)}</div>
+      <div data-testid="cumulative-usage">
+        {JSON.stringify(cumulativeUsage)}
+      </div>
       <div data-testid="error">{error ?? ""}</div>
       <button
         onClick={() => {
@@ -118,6 +155,11 @@ describe("ChatUIContext", () => {
     mockAgent.messages = [];
     mockAgent.isRunning = false;
     mockAgent.pendingInterrupts = [];
+    mockAgent.agentId = "default";
+    mockAgent.threadId = "thread-1";
+    subscribers.length = 0;
+    unsubscribeSpy.mockClear();
+    mockAgent.subscribe.mockClear();
     mockAgent.addMessage.mockReset();
     mockCopilotKit.runAgent.mockReset();
     mockCopilotKit.runAgent.mockResolvedValue(undefined);
@@ -400,5 +442,219 @@ describe("ChatUIContext", () => {
     await user.click(screen.getByText("continue"));
 
     expect(mockCopilotKit.runAgent).not.toHaveBeenCalled();
+  });
+});
+
+describe("ChatUIContext token usage", () => {
+  beforeEach(() => {
+    mockAgent.messages = [];
+    mockAgent.isRunning = false;
+    mockAgent.pendingInterrupts = [];
+    mockAgent.agentId = "default";
+    mockAgent.threadId = "thread-1";
+    subscribers.length = 0;
+    unsubscribeSpy.mockClear();
+    mockAgent.subscribe.mockClear();
+    mockCopilotKit.subscribe.mockReset();
+    mockCopilotKit.subscribe.mockReturnValue({ unsubscribe: vi.fn() });
+  });
+
+  function lastCall() {
+    return JSON.parse(
+      screen.getByTestId("last-call-usage").textContent || "null",
+    ) as Record<string, number> | null;
+  }
+
+  function cumulative() {
+    return JSON.parse(
+      screen.getByTestId("cumulative-usage").textContent || "null",
+    ) as Record<string, number> | null;
+  }
+
+  it("subscribes to the agent custom events", () => {
+    renderProvider();
+    expect(mockAgent.subscribe).toHaveBeenCalledTimes(1);
+    expect(subscribers[0]?.onCustomEvent).toBeTypeOf("function");
+  });
+
+  it("buffers token usage until the authoritative turn boundary", () => {
+    renderProvider();
+    emitCustomEvent("token_usage", {
+      model: "sonnet-4.6",
+      input_tokens: 1200,
+      context_window_tokens: 200000,
+      context_ratio: 0.006,
+    });
+
+    expect(lastCall()).toBeNull();
+
+    emitCustomEvent("turn_usage", { input_tokens: 1200 });
+
+    expect(lastCall()?.input_tokens).toBe(1200);
+    expect(cumulative()).toEqual({ input_tokens: 1200 });
+  });
+
+  it("promotes only the latest pending call when a turn completes", () => {
+    renderProvider();
+    emitCustomEvent("token_usage", { input_tokens: 100, output_tokens: 10 });
+    emitCustomEvent("token_usage", { input_tokens: 400 });
+
+    expect(lastCall()).toBeNull();
+
+    emitCustomEvent("turn_usage", { input_tokens: 400, output_tokens: 20 });
+
+    expect(lastCall()).toEqual({ input_tokens: 400 });
+    expect(cumulative()).toEqual({ input_tokens: 400, output_tokens: 20 });
+  });
+
+  it("ignores malformed and unknown custom events", () => {
+    renderProvider();
+    emitCustomEvent("token_usage", { input_tokens: 100 });
+    emitCustomEvent("token_usage", { input_tokens: -5 });
+    emitCustomEvent("token_usage", "not-an-object");
+    emitCustomEvent("some_other_event", { input_tokens: 999 });
+    expect(() => {
+      emitRawCustomEvent(null);
+    }).not.toThrow();
+    emitCustomEvent("turn_usage", { input_tokens: 10 });
+
+    expect(lastCall()).toEqual({ input_tokens: 100 });
+    expect(cumulative()).toEqual({ input_tokens: 10 });
+  });
+
+  it("adds cumulative totals once per authoritative turn_usage event", () => {
+    renderProvider();
+    emitCustomEvent("token_usage", { input_tokens: 100, output_tokens: 10 });
+    emitCustomEvent("token_usage", { input_tokens: 150, output_tokens: 20 });
+    emitCustomEvent("turn_usage", { input_tokens: 250, output_tokens: 30 });
+
+    expect(cumulative()).toEqual({ input_tokens: 250, output_tokens: 30 });
+    expect(lastCall()).toEqual({ input_tokens: 150, output_tokens: 20 });
+  });
+
+  it("accumulates authoritative totals across turns and interrupted turns", () => {
+    renderProvider();
+    emitCustomEvent("turn_usage", { input_tokens: 250, output_tokens: 30 });
+    emitCustomEvent("turn_usage", { input_tokens: 100 });
+
+    expect(cumulative()).toEqual({ input_tokens: 350, output_tokens: 30 });
+  });
+
+  it("retains the previous display when a turn has no valid pending snapshot", () => {
+    renderProvider();
+    emitCustomEvent("token_usage", { input_tokens: 100 });
+    emitCustomEvent("turn_usage", { input_tokens: 100 });
+    expect(lastCall()).toEqual({ input_tokens: 100 });
+
+    emitCustomEvent("turn_usage", { input_tokens: 50 });
+
+    expect(lastCall()).toEqual({ input_tokens: 100 });
+    expect(cumulative()).toEqual({ input_tokens: 150 });
+  });
+
+  it("omits cumulative fields that were never confirmed", () => {
+    renderProvider();
+    emitCustomEvent("turn_usage", { input_tokens: 10 });
+
+    expect(cumulative()).not.toHaveProperty("cache_write_tokens");
+  });
+
+  it("ignores malformed turn_usage payloads", () => {
+    renderProvider();
+    emitCustomEvent("turn_usage", { input_tokens: 10 });
+    emitCustomEvent("turn_usage", { input_tokens: 1.5 });
+
+    expect(cumulative()).toEqual({ input_tokens: 10 });
+  });
+
+  it("clears usage when the conversation message stream resets", () => {
+    mockAgent.messages = [{ id: "u1", role: "user", content: "hi" }];
+    const { rerender } = renderProvider();
+    emitCustomEvent("token_usage", { input_tokens: 100 });
+    expect(lastCall()).toBeNull();
+    emitCustomEvent("turn_usage", { input_tokens: 100 });
+    expect(lastCall()).not.toBeNull();
+
+    mockAgent.messages = [];
+    rerender(
+      <ErrorProvider>
+        <ChatUIProvider>
+          <TestConsumer />
+        </ChatUIProvider>
+      </ErrorProvider>,
+    );
+
+    expect(lastCall()).toBeNull();
+    expect(cumulative()).toBeNull();
+  });
+
+  it("does not promote a pending snapshot across a conversation reset", () => {
+    mockAgent.messages = [{ id: "u1", role: "user", content: "hi" }];
+    const { rerender } = renderProvider();
+    emitCustomEvent("token_usage", { input_tokens: 100 });
+
+    mockAgent.messages = [];
+    rerender(
+      <ErrorProvider>
+        <ChatUIProvider>
+          <TestConsumer />
+        </ChatUIProvider>
+      </ErrorProvider>,
+    );
+
+    emitCustomEvent("turn_usage", { input_tokens: 100 });
+
+    expect(lastCall()).toBeNull();
+    expect(cumulative()).toEqual({ input_tokens: 100 });
+  });
+
+  it("clears usage when the agent thread identity changes", () => {
+    mockAgent.messages = [{ id: "u1", role: "user", content: "hi" }];
+    const { rerender } = renderProvider();
+    emitCustomEvent("token_usage", { input_tokens: 100 });
+    emitCustomEvent("turn_usage", { input_tokens: 100 });
+
+    mockAgent.threadId = "thread-2";
+    rerender(
+      <ErrorProvider>
+        <ChatUIProvider>
+          <TestConsumer />
+        </ChatUIProvider>
+      </ErrorProvider>,
+    );
+
+    expect(lastCall()).toBeNull();
+    expect(cumulative()).toBeNull();
+  });
+
+  it("keeps usage while a response is running", () => {
+    mockAgent.messages = [{ id: "u1", role: "user", content: "hi" }];
+    const { rerender } = renderProvider();
+    emitCustomEvent("token_usage", { input_tokens: 100 });
+    emitCustomEvent("turn_usage", { input_tokens: 100 });
+    expect(lastCall()).toEqual({ input_tokens: 100 });
+
+    mockAgent.isRunning = true;
+    rerender(
+      <ErrorProvider>
+        <ChatUIProvider>
+          <TestConsumer />
+        </ChatUIProvider>
+      </ErrorProvider>,
+    );
+
+    expect(lastCall()).toEqual({ input_tokens: 100 });
+  });
+
+  it("unsubscribes on unmount and ignores stale events afterwards", () => {
+    const { unmount } = renderProvider();
+    emitCustomEvent("token_usage", { input_tokens: 100 });
+
+    unmount();
+    expect(unsubscribeSpy).toHaveBeenCalledTimes(1);
+
+    expect(() => {
+      emitCustomEvent("token_usage", { input_tokens: 999 });
+    }).not.toThrow();
   });
 });

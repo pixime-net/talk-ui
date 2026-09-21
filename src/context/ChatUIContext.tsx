@@ -25,6 +25,15 @@ import {
   type ModelAlias,
   type ThinkingEffort,
 } from "../config/models";
+import {
+  addTurnUsage,
+  parseTokenUsageEvent,
+  parseTurnUsageEvent,
+  TOKEN_USAGE_EVENT_NAME,
+  TURN_USAGE_EVENT_NAME,
+  type CumulativeUsage,
+  type TokenUsage,
+} from "../config/token-usage-schemas";
 
 export function ChatUIProvider({ children }: Readonly<PropsWithChildren>) {
   const { agent } = useAgent();
@@ -37,6 +46,10 @@ export function ChatUIProvider({ children }: Readonly<PropsWithChildren>) {
   );
   const [optimisticUserMessage, setOptimisticUserMessage] =
     useState<ChatMessageViewModel | null>(null);
+  const [lastCallUsage, setLastCallUsage] = useState<TokenUsage | null>(null);
+  const [cumulativeUsage, setCumulativeUsage] =
+    useState<CumulativeUsage | null>(null);
+  const pendingCallUsageRef = useRef<TokenUsage | null>(null);
   // IDs of user messages that were sent while an interrupt was still pending.
   // A "Request cancelled by user" notice is rendered just before each of them.
   const [cancelledNoticeIds, setCancelledNoticeIds] = useState<Set<string>>(
@@ -81,11 +94,63 @@ export function ChatUIProvider({ children }: Readonly<PropsWithChildren>) {
     };
   }, [copilotkit, setError]);
 
+  const agentIdentity = `${agent.agentId ?? ""}:${agent.threadId}`;
+  // Usage belongs to a conversation: a new agent/thread, or an emptied message
+  // stream (start/load/reset), starts the indicators from scratch.
+  const usageScopeKey = `${agentIdentity}:${agent.messages.length === 0 ? "empty" : "active"}`;
+  const [previousUsageScopeKey, setPreviousUsageScopeKey] =
+    useState(usageScopeKey);
+  if (previousUsageScopeKey !== usageScopeKey) {
+    setPreviousUsageScopeKey(usageScopeKey);
+    setLastCallUsage(null);
+    setCumulativeUsage(null);
+    // The pending snapshot must be invalidated before any new boundary event.
+    // eslint-disable-next-line react-hooks/refs
+    pendingCallUsageRef.current = null;
+  }
+
+  useEffect(() => {
+    // A stale subscription must never write into the current conversation.
+    let active = true;
+    const { unsubscribe } = agent.subscribe({
+      onCustomEvent: ({ event }) => {
+        if (!active) return;
+        // AG-UI delivers an event envelope at runtime, but guard malformed input.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (event === null || event === undefined) return;
+        const value: unknown = event.value;
+        if (event.name === TOKEN_USAGE_EVENT_NAME) {
+          // Buffered, not displayed: a turn can contain several LLM calls and
+          // publishing each one makes the context indicator flicker up and down.
+          const usage = parseTokenUsageEvent(value);
+          if (usage !== undefined) pendingCallUsageRef.current = usage;
+          return;
+        }
+        if (event.name === TURN_USAGE_EVENT_NAME) {
+          const turn = parseTurnUsageEvent(value);
+          if (turn !== undefined) {
+            setCumulativeUsage((previous) => addTurnUsage(previous, turn));
+            // The turn boundary is the publication point. With no buffered
+            // snapshot the previous display is kept rather than cleared.
+            const pending = pendingCallUsageRef.current;
+            if (pending !== null) {
+              setLastCallUsage(pending);
+              pendingCallUsageRef.current = null;
+            }
+          }
+        }
+      },
+    });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [agent]);
+
   const normalizedMessages = useMemo(
     () => normalizeMessages(agent.messages),
     [agent.messages],
   );
-
   const visibleMessages = useMemo(() => {
     if (!optimisticUserMessage) {
       return normalizedMessages;
@@ -254,6 +319,8 @@ export function ChatUIProvider({ children }: Readonly<PropsWithChildren>) {
       thinkingEffort,
       supportsThinkingForSelectedModel: supportsThinking(selectedModel),
       pendingInterrupt,
+      lastCallUsage,
+      cumulativeUsage,
       sendMessage,
       continueFromInterrupt,
       setShowTools,
@@ -265,7 +332,9 @@ export function ChatUIProvider({ children }: Readonly<PropsWithChildren>) {
       agent.isRunning,
       clearError,
       continueFromInterrupt,
+      cumulativeUsage,
       error,
+      lastCallUsage,
       pendingInterrupt,
       selectedModel,
       sendMessage,

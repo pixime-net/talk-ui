@@ -1,6 +1,7 @@
 import { ChatInput } from "./ChatInput";
 import { ModelSelector } from "./ModelSelector";
 import { ThinkingEffortSelector } from "./ThinkingEffortSelector";
+import { TokenUsageIndicator } from "./TokenUsageIndicator";
 import { MessageBubble } from "./MessageBubble";
 import { ReasoningBlock } from "./ReasoningBlock";
 import { ToolCallItem } from "./ToolCallItem";
@@ -20,6 +21,8 @@ export function ChatView() {
     thinkingEffort,
     supportsThinkingForSelectedModel,
     pendingInterrupt,
+    lastCallUsage,
+    cumulativeUsage,
     sendMessage,
     continueFromInterrupt,
     setShowTools,
@@ -75,7 +78,11 @@ export function ChatView() {
   const chatBox = (
     <div className="mx-auto w-full max-w-2xl rounded-xl border border-white/20 bg-white/5 px-4 pb-2 pt-3">
       <ChatInput onSend={sendMessage} disabled={isRunning} />
-      <div className="flex justify-end gap-2 pt-2.5">
+      <div className="flex flex-wrap justify-end gap-2 pt-2.5">
+        <TokenUsageIndicator
+          lastCallUsage={lastCallUsage}
+          cumulativeUsage={cumulativeUsage}
+        />
         <ModelSelector
           value={selectedModel}
           onChange={setSelectedModel}

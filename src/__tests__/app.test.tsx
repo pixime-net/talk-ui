@@ -8,6 +8,9 @@ vi.mock("@copilotkit/react-core/v2", () => ({
       isRunning: false,
       pendingInterrupts: [],
       addMessage: vi.fn(),
+      agentId: "default",
+      threadId: "thread-1",
+      subscribe: vi.fn(() => ({ unsubscribe: vi.fn() })),
     },
   }),
   useCopilotKit: () => ({
