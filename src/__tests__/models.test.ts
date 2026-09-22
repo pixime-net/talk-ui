@@ -18,6 +18,9 @@ describe("models config", () => {
       "o4-mini",
       "gpt-5.4",
       "mistral-small",
+      "openrouter-deepseek-chat",
+      "openrouter-deepseek-v3",
+      "openrouter-deepseek-flash",
     ]);
   });
 
@@ -50,5 +53,8 @@ describe("thinking effort", () => {
   it("identifies non-thinking models", () => {
     expect(supportsThinking("gpt-5.4")).toBe(false);
     expect(supportsThinking("mistral-small")).toBe(false);
+    expect(supportsThinking("openrouter-deepseek-chat")).toBe(false);
+    expect(supportsThinking("openrouter-deepseek-v3")).toBe(false);
+    expect(supportsThinking("openrouter-deepseek-flash")).toBe(false);
   });
 });

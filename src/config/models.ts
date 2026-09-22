@@ -8,6 +8,9 @@ export const MODEL_ALIASES = [
   "o4-mini",
   "gpt-5.4",
   "mistral-small",
+  "mistral-medium",
+  "deepseek-v3.2",
+  "deepseek-v4.1-flash",
 ] as const;
 
 export const modelAliasSchema = z.enum(MODEL_ALIASES);
@@ -40,6 +43,10 @@ const THINKING_MODELS: ReadonlySet<ModelAlias> = new Set([
   "sonnet-5",
   "opus-4.6",
   "o4-mini",
+  "mistral-small",
+  "mistral-medium",
+  "deepseek-v3.2",
+  "deepseek-v4.1-flash",
 ]);
 
 export function supportsThinking(model: ModelAlias): boolean {

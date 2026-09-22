@@ -54,7 +54,7 @@ export function ChatInput({
         onKeyDown={handleKeyDown}
         disabled={disabled}
         rows={1}
-        placeholder="Envoyer un message…"
+        placeholder="Poser une question…"
         aria-label="Message"
         className="flex-1 resize-none bg-transparent py-1 text-foreground placeholder:text-muted focus:outline-none disabled:opacity-50"
       />
