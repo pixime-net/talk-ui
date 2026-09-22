@@ -18,9 +18,9 @@ describe("models config", () => {
       "o4-mini",
       "gpt-5.4",
       "mistral-small",
-      "openrouter-deepseek-chat",
-      "openrouter-deepseek-v3",
-      "openrouter-deepseek-flash",
+      "mistral-medium",
+      "deepseek-v3.2",
+      "deepseek-v4.1-flash",
     ]);
   });
 
@@ -48,13 +48,13 @@ describe("thinking effort", () => {
     expect(supportsThinking("sonnet-5")).toBe(true);
     expect(supportsThinking("opus-4.6")).toBe(true);
     expect(supportsThinking("o4-mini")).toBe(true);
+    expect(supportsThinking("mistral-small")).toBe(true);
+    expect(supportsThinking("mistral-medium")).toBe(true);
+    expect(supportsThinking("deepseek-v3.2")).toBe(true);
+    expect(supportsThinking("deepseek-v4.1-flash")).toBe(true);
   });
 
   it("identifies non-thinking models", () => {
     expect(supportsThinking("gpt-5.4")).toBe(false);
-    expect(supportsThinking("mistral-small")).toBe(false);
-    expect(supportsThinking("openrouter-deepseek-chat")).toBe(false);
-    expect(supportsThinking("openrouter-deepseek-v3")).toBe(false);
-    expect(supportsThinking("openrouter-deepseek-flash")).toBe(false);
   });
 });
